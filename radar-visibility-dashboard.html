@@ -4,484 +4,1373 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar Visibility Estimate — Radar Consultancy</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --navy: #2243B6;
-    --lavender: #D6B3E0;
-    --sage: #E5F3C7;
-    --white: #ffffff;
-    --navy-mid: rgba(255,255,255,0.12);
-    --navy-text: rgba(255,255,255,0.7);
-    --navy-muted: rgba(255,255,255,0.45);
-    --navy-faint: rgba(255,255,255,0.2);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--navy); min-height: 100vh; }
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-  /* TOPBAR */
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; border-bottom: 1px solid var(--navy-faint); }
-  .topbar-logo { display: flex; align-items: center; gap: 10px; }
-  .logo-mark { width: 26px; height: 26px; background: white; border-radius: 3px; flex-shrink: 0; }
-  .logo-text { color: var(--white); font-size: 12px; letter-spacing: 0.18em; font-weight: 500; }
-  .topbar-actions { display: flex; gap: 10px; }
-  .tb-btn { background: transparent; border: 1px solid var(--navy-faint); color: var(--navy-muted); font-family: inherit; font-size: 13px; padding: 7px 16px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
-  .tb-btn:hover { border-color: var(--navy-text); color: var(--white); }
-  .tb-btn.primary { background: var(--sage); color: var(--navy); border-color: var(--sage); font-weight: 500; }
-  .tb-btn.primary:hover { background: #d4e9b0; }
+:root {
+  --navy: #1530A8;
+  --lavender: #D6B3E0;
+  --sage: #E5F3C7;
+  --ink: #2243B6;
+  --paper: #F8F6F1;
+  --white: #FFFFFF;
+  --mid: #6B7280;
+  --line: #E2DDD6;
+  --red: #D93025;
+  --amber: #F59E0B;
+  --green: #16A34A;
+}
 
-  /* GATE SCREEN */
-  .gate-wrap { max-width: 700px; margin: 0 auto; padding: 60px 32px 80px; }
-  .gate-eyebrow { font-size: 11px; letter-spacing: 0.14em; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 16px; }
-  .gate-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 10vw, 100px); line-height: 0.92; color: var(--white); margin-bottom: 24px; }
-  .gate-title span { color: var(--lavender); }
-  .gate-sub { font-size: 17px; color: var(--navy-text); line-height: 1.6; max-width: 560px; margin-bottom: 40px; }
-  .gate-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--navy-faint); }
-  .gs { display: flex; flex-direction: column; gap: 4px; }
-  .gs-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--lavender); line-height: 1; }
-  .gs-label { font-size: 13px; color: var(--navy-muted); }
-  .gate-form { display: flex; flex-direction: column; gap: 14px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .gate-form input { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 13px 16px; font-size: 15px; font-family: inherit; color: white; width: 100%; outline: none; transition: border 0.15s; }
-  .gate-form input::placeholder { color: rgba(255,255,255,0.35); }
-  .gate-form input:focus { border-color: rgba(255,255,255,0.5); }
-  .gate-btn { background: var(--sage); color: var(--navy); border: none; border-radius: 8px; padding: 15px; font-size: 16px; font-family: inherit; font-weight: 500; cursor: pointer; width: 100%; margin-top: 6px; letter-spacing: 0.02em; transition: background 0.15s; }
-  .gate-btn:hover { background: #d4e9b0; }
-  .gate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .gate-note { text-align: center; margin-top: 16px; font-size: 13px; color: var(--navy-muted); line-height: 1.6; }
-  .gate-fine { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 6px; }
-  .gate-built { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 14px; }
-  .gate-built strong { color: rgba(255,255,255,0.55); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-  /* LOADING */
-  .loading-wrap { max-width: 480px; margin: 0 auto; padding: 100px 32px; text-align: center; }
-  .scan-ring { width: 64px; height: 64px; border: 2px solid var(--navy-faint); border-top-color: var(--lavender); border-radius: 50%; margin: 0 auto 24px; animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-wrap p { font-size: 15px; color: var(--navy-text); letter-spacing: 0.04em; }
-  .loading-wrap small { font-size: 12px; color: var(--navy-muted); display: block; margin-top: 8px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ink);
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
 
-  /* RESULTS */
-  .results-wrap { max-width: 780px; margin: 0 auto; padding: 40px 32px 80px; }
-  .r-header { margin-bottom: 32px; }
-  .r-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--white); letter-spacing: 0.04em; }
-  .r-header p { font-size: 14px; color: var(--navy-muted); margin-top: 4px; }
+/* ─── NOISE TEXTURE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
 
-  .warning-banner { background: rgba(239,159,39,0.15); border: 1px solid rgba(239,159,39,0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; font-size: 13px; color: rgba(239,159,39,0.9); line-height: 1.5; }
+/* ─── GATE SCREEN ─── */
+#gate {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+  background: var(--ink);
+}
 
-  .score-hero { background: rgba(255,255,255,0.07); border-radius: 12px; padding: 28px 32px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
-  .score-big { font-family: 'Bebas Neue', sans-serif; font-size: 80px; color: var(--white); line-height: 1; }
-  .score-big span { font-size: 36px; color: var(--navy-muted); }
-  .score-right { text-align: right; }
-  .score-grade { font-size: 13px; letter-spacing: 0.1em; color: var(--lavender); text-transform: uppercase; margin-bottom: 6px; }
-  .score-name { font-size: 22px; font-weight: 500; color: var(--white); margin-bottom: 4px; }
-  .score-topic { font-size: 14px; color: var(--navy-muted); }
-  .score-bar-track { background: rgba(255,255,255,0.1); border-radius: 4px; height: 5px; margin-top: 20px; }
-  .score-bar-fill { height: 5px; border-radius: 4px; background: var(--lavender); transition: width 1.5s ease; }
+.gate-inner {
+  max-width: 560px; width: 100%;
+  animation: riseIn 0.7s cubic-bezier(0.16,1,0.3,1) both;
+}
 
-  .section-title { font-size: 10px; letter-spacing: 0.12em; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 14px; margin-top: 28px; }
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-  .platform-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
-  .plat-card { background: rgba(255,255,255,0.06); border-radius: 10px; padding: 16px; }
-  .plat-name { font-size: 11px; letter-spacing: 0.08em; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 8px; }
-  .plat-score { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--white); margin-bottom: 8px; line-height: 1; }
-  .plat-score span { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy-muted); }
-  .plat-bar-track { background: rgba(255,255,255,0.1); border-radius: 3px; height: 3px; }
-  .plat-bar-fill { height: 3px; border-radius: 3px; background: var(--lavender); transition: width 1.5s ease; }
+.gate-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 32px;
+}
 
-  .query-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .query-row { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px 14px; }
-  .query-type { font-size: 11px; letter-spacing: 0.06em; color: var(--navy-muted); text-transform: uppercase; margin-bottom: 4px; }
-  .query-val { font-size: 14px; color: var(--white); }
+.gate-logo {
+  width: 32px; height: 32px;
+  border: 1px solid rgba(214,179,224,0.4);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Instrument Serif', serif;
+  font-size: 16px; color: var(--lavender);
+}
 
-  .gaps-list { display: flex; flex-direction: column; gap: 10px; }
-  .gap-item { background: rgba(255,255,255,0.05); border-radius: 8px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
-  .gap-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lavender); flex-shrink: 0; margin-top: 5px; }
-  .gap-text { font-size: 14px; color: var(--navy-text); line-height: 1.55; }
+.gate-brand {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 2px;
+  color: rgba(255,255,255,0.75); text-transform: uppercase;
+}
 
-  .actions-list { display: flex; flex-direction: column; gap: 8px; }
-  .action-item { background: rgba(229,243,199,0.08); border-radius: 8px; padding: 13px 16px; display: flex; gap: 12px; align-items: flex-start; }
-  .action-num { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--sage); flex-shrink: 0; line-height: 1; }
-  .action-text { font-size: 14px; color: var(--navy-text); line-height: 1.55; }
+.gate-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(52px, 10vw, 88px);
+  line-height: 0.9; letter-spacing: -1px;
+  color: var(--white); margin-bottom: 6px;
+}
 
-  .cta-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 28px 32px; margin-top: 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-  .cta-left h3 { font-size: 20px; font-weight: 500; color: var(--white); margin-bottom: 6px; }
-  .cta-left p { font-size: 14px; color: var(--navy-muted); line-height: 1.55; max-width: 440px; }
-  .cta-right { text-align: center; flex-shrink: 0; }
-  .cta-price { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--white); line-height: 1; }
-  .cta-price-note { font-size: 12px; color: var(--navy-muted); margin-bottom: 14px; }
-  .cta-btn { display: block; background: var(--sage); color: var(--navy); text-decoration: none; border: none; border-radius: 8px; padding: 12px 28px; font-size: 14px; font-family: inherit; font-weight: 500; cursor: pointer; letter-spacing: 0.02em; transition: background 0.15s; white-space: nowrap; }
-  .cta-btn:hover { background: #d4e9b0; }
+.gate-title span { color: var(--lavender); }
 
-  .disclaimer { margin-top: 28px; font-size: 11px; color: rgba(255,255,255,0.2); text-align: center; line-height: 1.6; }
+.gate-sub {
+  font-size: 15px; color: rgba(255,255,255,0.85);
+  line-height: 1.6; margin-bottom: 36px;
+  max-width: 440px;
+}
 
-  .hidden { display: none !important; }
+.gate-form {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 10px;
+}
 
-  @media (max-width: 600px) {
-    .gate-wrap, .results-wrap { padding: 40px 20px 60px; }
-    .form-row { grid-template-columns: 1fr; }
-    .gate-stats { grid-template-columns: repeat(2,1fr); gap: 20px; }
-    .platform-grid { grid-template-columns: 1fr 1fr; }
-    .query-grid { grid-template-columns: 1fr; }
-    .cta-card { flex-direction: column; }
-    .topbar { padding: 14px 20px; }
-    .topbar-actions { display: none; }
-    .score-hero { flex-direction: column; gap: 16px; }
-    .score-right { text-align: left; }
-  }
+.gate-form input {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px; padding: 14px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; color: var(--white);
+  outline: none; transition: border-color 0.2s;
+}
+
+.gate-form input:focus { border-color: var(--sage); }
+.gate-form input::placeholder { color: rgba(255,255,255,0.45); }
+.gate-form input.full { grid-column: 1 / -1; }
+
+.gate-btn {
+  width: 100%; margin-top: 4px;
+  background: var(--sage); color: var(--navy);
+  border: none; border-radius: 8px; padding: 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.3px;
+  transition: opacity 0.2s, transform 0.1s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+
+.gate-btn:hover { opacity: 0.87; transform: translateY(-1px); }
+.gate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.gate-note {
+  font-size: 12px; color: rgba(255,255,255,0.6);
+  text-align: center; margin-top: 16px; line-height: 1.6;
+}
+
+.gate-stats {
+  display: flex; gap: 24px; margin-bottom: 40px;
+}
+
+.gs {
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.gs-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px; color: var(--lavender); line-height: 1;
+}
+
+.gs-label {
+  font-size: 13px; color: rgba(255,255,255,0.8);
+  letter-spacing: 0.3px;
+}
+
+/* ─── SCAN SCREEN ─── */
+#scan {
+  display: none; position: fixed; inset: 0;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 32px;
+  z-index: 90; background: var(--ink); padding: 40px;
+}
+
+.scan-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px; letter-spacing: 1px;
+  color: var(--white); text-align: center;
+}
+
+.scan-sub {
+  font-size: 13px; color: rgba(255,255,255,0.4);
+  text-align: center; margin-top: -20px;
+  font-family: 'DM Mono', monospace; letter-spacing: 0.5px;
+}
+
+.scan-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; width: 100%; max-width: 640px;
+}
+
+.scan-platform {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px; padding: 16px;
+  text-align: center; position: relative;
+  overflow: hidden; transition: border-color 0.3s;
+}
+
+.scan-platform.active { border-color: var(--lavender); }
+.scan-platform.done { border-color: var(--sage); }
+
+.scan-platform::before {
+  content: ''; position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(214,179,224,0.08), transparent);
+  transition: left 0s;
+}
+
+.scan-platform.active::before { animation: shimmer 1.2s ease-in-out infinite; }
+
+@keyframes shimmer {
+  from { left: -100%; }
+  to   { left: 100%; }
+}
+
+.sp-icon { font-size: 22px; margin-bottom: 6px; }
+.sp-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.4); text-transform: uppercase;
+}
+.sp-status {
+  font-size: 10px; margin-top: 6px;
+  color: rgba(255,255,255,0.25);
+  font-family: 'DM Mono', monospace;
+}
+.scan-platform.active .sp-status { color: var(--lavender); }
+.scan-platform.done .sp-status { color: var(--sage); }
+
+.scan-queries {
+  width: 100%; max-width: 640px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 16px 20px;
+  max-height: 160px; overflow: hidden;
+}
+
+.sq-item {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: center; gap: 10px;
+  animation: fadeRow 0.3s ease both;
+}
+
+.sq-item:last-child { border-bottom: none; }
+.sq-item.running { color: var(--lavender); }
+.sq-item.complete { color: rgba(255,255,255,0.2); }
+
+@keyframes fadeRow { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; } }
+
+.sq-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+.scan-progress {
+  width: 100%; max-width: 640px;
+}
+
+.sp-bar-wrap {
+  height: 3px; background: rgba(255,255,255,0.08);
+  border-radius: 3px; overflow: hidden;
+}
+
+.sp-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--navy), var(--lavender));
+  border-radius: 3px; transition: width 0.4s ease;
+  width: 0%;
+}
+
+.sp-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: rgba(255,255,255,0.3);
+  margin-bottom: 8px; letter-spacing: 1px;
+}
+
+/* ─── DASHBOARD ─── */
+#dashboard {
+  display: none; min-height: 100vh;
+  position: relative; z-index: 1;
+}
+
+/* TOPBAR */
+.topbar {
+  height: 52px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; padding: 0 32px;
+  gap: 16px; position: sticky; top: 0; z-index: 10;
+  background: rgba(34,67,182,0.92); backdrop-filter: blur(12px);
+}
+
+.tb-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.tb-ring {
+  width: 24px; height: 24px;
+  border: 1px solid rgba(214,179,224,0.4); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Instrument Serif', serif;
+  font-size: 12px; color: var(--lavender);
+}
+
+.tb-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.4); text-transform: uppercase;
+}
+
+.tb-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.1); }
+.tb-subject { font-size: 12px; color: rgba(255,255,255,0.6); }
+.tb-actions { margin-left: auto; display: flex; gap: 8px; }
+
+.tb-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; padding: 6px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer; transition: border-color 0.2s, color 0.2s;
+}
+
+.tb-btn:hover { border-color: var(--lavender); color: var(--white); }
+.tb-btn.primary { background: var(--navy); border-color: var(--navy); color: var(--white); }
+
+/* HERO SCORE SECTION */
+.hero {
+  padding: 48px 32px 0;
+  display: grid; grid-template-columns: 1fr 420px;
+  gap: 32px; max-width: 1200px; margin: 0 auto;
+}
+
+.hero-left {}
+
+.hero-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.7); text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.hero-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 0.95; color: var(--white);
+  margin-bottom: 8px;
+}
+
+.hero-topic {
+  font-size: 16px; color: rgba(255,255,255,0.75);
+  margin-bottom: 36px; font-style: italic;
+  font-family: 'Instrument Serif', serif;
+}
+
+/* SCORE DIAL */
+.score-dial-wrap {
+  position: relative; width: 200px; height: 200px; margin-bottom: 28px;
+}
+
+.score-dial-svg { width: 200px; height: 200px; transform: rotate(-90deg); }
+
+.dial-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 12; stroke-linecap: round; }
+.dial-fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1.5s cubic-bezier(0.34,1.56,0.64,1); }
+
+.dial-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+.dial-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px; line-height: 1; color: var(--white);
+}
+
+.dial-max {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px; color: rgba(255,255,255,0.7);
+  letter-spacing: 1px;
+}
+
+.score-grade {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 20px;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  letter-spacing: 1px; font-weight: 500; margin-bottom: 16px;
+}
+
+.grade-critical { background: rgba(217,48,37,0.15); color: #EF5350; border: 1px solid rgba(217,48,37,0.3); }
+.grade-low { background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); }
+.grade-moderate { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); }
+.grade-good { background: rgba(22,163,74,0.15); color: #4ADE80; border: 1px solid rgba(22,163,74,0.3); }
+.grade-strong { background: rgba(229,243,199,0.15); color: var(--sage); border: 1px solid rgba(229,243,199,0.3); }
+
+.grade-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.hero-summary {
+  font-size: 15px; color: rgba(255,255,255,0.85);
+  line-height: 1.7; max-width: 380px;
+}
+
+/* PLATFORM BREAKDOWN */
+.platform-cards {
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.plat-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px; padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  transition: border-color 0.2s;
+}
+
+.plat-card:hover { border-color: rgba(255,255,255,0.25); }
+
+.plat-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+
+.plat-info { flex: 1; }
+
+.plat-name {
+  font-size: 14px; font-weight: 600; color: var(--white);
+  margin-bottom: 2px;
+}
+
+.plat-detail {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: rgba(255,255,255,0.6);
+  letter-spacing: 0.3px;
+}
+
+.plat-score-wrap { text-align: right; }
+
+.plat-score-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; line-height: 1;
+  color: var(--white);
+}
+
+.plat-score-max {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: rgba(255,255,255,0.25);
+}
+
+.plat-bar {
+  height: 3px; background: rgba(255,255,255,0.08);
+  border-radius: 3px; overflow: hidden; margin-top: 8px;
+}
+
+.plat-bar-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 1s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* MAIN CONTENT */
+.content {
+  max-width: 1200px; margin: 0 auto;
+  padding: 32px 32px 64px;
+  display: grid; grid-template-columns: 1fr 340px;
+  gap: 24px;
+}
+
+/* QUERY TABLE */
+.section-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 2.5px;
+  text-transform: uppercase; color: rgba(255,255,255,0.6);
+  margin-bottom: 14px;
+}
+
+.query-table {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 12px; overflow: hidden;
+}
+
+.qt-header {
+  display: grid; grid-template-columns: 1fr repeat(4, 60px);
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  gap: 8px;
+}
+
+.qt-h {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.7); text-transform: uppercase;
+  text-align: center;
+}
+
+.qt-h:first-child { text-align: left; }
+
+.qt-row {
+  display: grid; grid-template-columns: 1fr repeat(4, 60px);
+  padding: 14px 18px; gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  align-items: center; transition: background 0.15s;
+}
+
+.qt-row:hover { background: rgba(255,255,255,0.04); }
+.qt-row:last-child { border-bottom: none; }
+
+.qt-query {
+  font-size: 14px; color: rgba(255,255,255,0.95);
+  line-height: 1.4; font-weight: 500;
+}
+
+.qt-query-cat {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: rgba(255,255,255,0.5);
+  margin-top: 3px; letter-spacing: 0.3px;
+}
+
+.qt-score {
+  text-align: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+}
+
+.score-0 { color: rgba(239,83,80,0.8); }
+.score-1 { color: rgba(251,191,36,0.9); }
+.score-2 { color: rgba(96,165,250,1); }
+.score-3 { color: var(--sage); }
+
+/* GAP REPORT */
+.gap-report {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 12px; padding: 20px;
+  margin-top: 24px;
+}
+
+.gap-item {
+  display: flex; gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.gap-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.gap-severity {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; flex-shrink: 0; margin-top: 1px;
+  font-weight: 700;
+}
+
+.sev-high { background: rgba(217,48,37,0.2); color: #EF5350; }
+.sev-med  { background: rgba(245,158,11,0.2); color: #FBBF24; }
+.sev-low  { background: rgba(59,130,246,0.2); color: #60A5FA; }
+
+.gap-text { font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.6; }
+.gap-text strong { color: var(--white); display: block; font-size: 14px; margin-bottom: 2px; }
+
+/* SIDEBAR */
+.sidebar {}
+
+.action-card {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px; padding: 20px;
+  margin-bottom: 16px;
+}
+
+.ac-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,0.6);
+  margin-bottom: 14px;
+}
+
+.ac-item {
+  display: flex; gap: 10px; margin-bottom: 12px;
+  font-size: 13px; color: rgba(255,255,255,0.85); line-height: 1.5;
+}
+
+.ac-item:last-child { margin-bottom: 0; }
+
+.ac-num {
+  width: 20px; height: 20px;
+  background: var(--navy); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--white); flex-shrink: 0;
+}
+
+/* CTA CARD */
+.cta-card {
+  background: linear-gradient(135deg, var(--navy) 0%, #1530A8 100%);
+  border-radius: 12px; padding: 24px;
+  position: relative; overflow: hidden;
+}
+
+.cta-card::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px;
+  background: rgba(214,179,224,0.1);
+  border-radius: 50%;
+}
+
+.cta-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: 2px;
+  color: rgba(255,255,255,0.5); text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.cta-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px; color: var(--white);
+  line-height: 1.3; margin-bottom: 8px;
+}
+
+.cta-desc {
+  font-size: 12px; color: rgba(255,255,255,0.6);
+  line-height: 1.6; margin-bottom: 18px;
+}
+
+.cta-price {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px; color: var(--sage);
+  line-height: 1; margin-bottom: 4px;
+}
+
+.cta-price-note {
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  margin-bottom: 18px;
+}
+
+.cta-btn {
+  width: 100%;
+  background: var(--white); color: var(--navy);
+  border: none; border-radius: 8px; padding: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: opacity 0.2s;
+}
+
+.cta-btn:hover { opacity: 0.9; }
+
+.cta-features {
+  margin-top: 14px; display: flex; flex-direction: column; gap: 6px;
+}
+
+.cta-feature {
+  font-size: 11px; color: rgba(255,255,255,0.5);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.cta-check { color: var(--sage); font-size: 12px; }
+
+/* COMPARISON BAR */
+.comparison {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 12px; padding: 20px; margin-top: 24px;
+}
+
+.comp-item {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px;
+}
+
+.comp-item:last-child { margin-bottom: 0; }
+
+.comp-label {
+  font-size: 11px; color: rgba(255,255,255,0.5);
+  width: 120px; flex-shrink: 0;
+}
+
+.comp-bar {
+  flex: 1; height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px; overflow: hidden;
+}
+
+.comp-fill {
+  height: 100%; border-radius: 6px;
+  transition: width 1.2s cubic-bezier(0.34,1.56,0.64,1) 0.5s;
+}
+
+.comp-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  width: 28px; text-align: right;
+}
+
+/* PRINT / EXPORT WATERMARK */
+.report-footer {
+  text-align: center; padding: 32px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: rgba(255,255,255,0.15);
+  letter-spacing: 1px; border-top: 1px solid rgba(255,255,255,0.06);
+  max-width: 1200px; margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .content { grid-template-columns: 1fr; }
+  .gate-form { grid-template-columns: 1fr; }
+  .scan-grid { grid-template-columns: repeat(2,1fr); }
+  .qt-header, .qt-row { grid-template-columns: 1fr repeat(4,44px); }
+  .hero-left { order: 2; }
+  .platform-cards { order: 1; }
+}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-logo">
-    <span style="font-family:'DM Sans',sans-serif; font-weight:500; font-size:18px; color:white; letter-spacing:0.12em;">RADAR</span>
-    <span style="font-family:'DM Sans',sans-serif; font-size:11px; color:rgba(255,255,255,0.45); letter-spacing:0.14em;">CONSULTANCY</span>
-  </div>
-  <div class="topbar-actions" id="topbar-actions-gate">
-    <a href="https://radarconsultancy.co" class="tb-btn">radarconsultancy.co</a>
-  </div>
-  <div class="topbar-actions hidden" id="topbar-actions-results">
-    <button class="tb-btn" onclick="window.print()">Export PDF</button>
-    <button class="tb-btn" onclick="resetScan()">New Estimate</button>
-    <button class="tb-btn primary" onclick="document.getElementById('cta-section').scrollIntoView({behavior:'smooth'})">Get Verified Audit</button>
-  </div>
-</div>
-
-<!-- GATE -->
-<div id="gate-screen">
-  <div class="gate-wrap">
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-      <span style="font-family:'DM Sans',sans-serif; font-weight:500; font-size:16px; color:white; letter-spacing:0.12em;">RADAR</span>
-      <span style="font-size:11px; letter-spacing:0.14em; color:rgba(255,255,255,0.45); font-family:'DM Sans',sans-serif;">CONSULTANCY</span>
-      <span style="font-size:11px; letter-spacing:0.1em; color:rgba(255,255,255,0.3); font-family:'DM Sans',sans-serif;">— FREE TOOL</span>
+<!-- ═══════════════ GATE ═══════════════ -->
+<div id="gate">
+  <div class="gate-inner">
+    <div class="gate-eyebrow">
+      <a href="https://radarconsultancy.co/" target="_blank" style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:rgba(255,255,255,0.85);text-decoration:none;">RADAR</a>
     </div>
-    <h1 class="gate-title">RADAR<br><span>VISIBILITY</span><br>ESTIMATE</h1>
-    <p class="gate-sub">Get an AI-estimated baseline of your visibility across Claude, ChatGPT, Perplexity and Gemini, with a gap analysis showing where you are most likely being overlooked and why.</p>
+
+    <div class="gate-title">RADAR<br><span>VISIBILITY</span><br>ESTIMATE</div>
+    <div class="gate-sub">Get an AI-estimated baseline of your visibility across Claude, ChatGPT, Perplexity and Gemini, with a gap analysis showing where you're most likely being overlooked and why.</div>
 
     <div class="gate-stats">
       <div class="gs"><span class="gs-num">144</span><span class="gs-label">Max estimate</span></div>
       <div class="gs"><span class="gs-num">12</span><span class="gs-label">Query types</span></div>
       <div class="gs"><span class="gs-num">4</span><span class="gs-label">AI platforms</span></div>
-      <div class="gs"><span class="gs-num">60<span style="font-size:0.5em;vertical-align:baseline;">s</span></span><span class="gs-label">To complete</span></div>
+      <div class="gs"><span class="gs-num">60<span style="font-family:'DM Sans',sans-serif;font-size:28px;font-weight:600">s</span></span><span class="gs-label">To complete</span></div>
     </div>
 
     <div class="gate-form">
-      <div class="form-row">
-        <input type="text" id="inp-firstname" placeholder="First name" />
-        <input type="email" id="inp-email" placeholder="Work email" />
-      </div>
-      <input type="text" id="inp-name" placeholder="Your name or brand (as it would appear in AI search)" />
-      <input type="text" id="inp-expertise" placeholder="Your expertise area (e.g. burnout recovery, property investment)" />
-      <div class="form-row">
-        <input type="text" id="inp-industry" placeholder="Your industry / niche" />
-        <input type="text" id="inp-location" placeholder="Location (e.g. Australia)" />
-      </div>
-      <button class="gate-btn" id="gate-btn" onclick="runEstimate()">Generate My Visibility Estimate →</button>
+      <input type="text" id="g-firstname" placeholder="First name" class="full" style="grid-column:span 1">
+      <input type="email" id="g-email" placeholder="Work email" class="full" style="grid-column:span 1">
+      <input type="text" id="g-subject" placeholder="Your name or brand (as it would appear in AI search)" class="full">
+      <input type="text" id="g-topic" placeholder="Your expertise area (e.g. burnout recovery, property investment)" class="full">
+      <input type="text" id="g-niche" placeholder="Your industry / niche" class="full" style="grid-column:span 1">
+      <input type="text" id="g-location" placeholder="Location (e.g. Australia)" class="full" style="grid-column:span 1">
     </div>
-    <div class="gate-note">No credit card required · Free estimate · Results in 60 seconds</div>
-    <div class="gate-fine">This tool produces an AI-estimated baseline, not a live measurement.</div>
-    <div class="gate-built">Built by <a href="https://radarconsultancy.co" style="color:rgba(255,255,255,0.55); text-decoration:underline; text-underline-offset:2px;">radarconsultancy.co</a></div>
+    <button class="gate-btn" id="gate-btn" onclick="startScan()">
+      <span id="gate-btn-text">Generate My Visibility Estimate →</span>
+    </button>
+    <div class="gate-note">No credit card required &nbsp;·&nbsp; Free estimate &nbsp;·&nbsp; Results in 60 seconds<br>
+    <span style="color:rgba(255,255,255,0.35)">This tool produces an AI-estimated baseline, not a live measurement.</span><br><br>
+    Built by <a href="https://radarconsultancy.co/" target="_blank" style="color:rgba(255,255,255,0.7);text-decoration:none;font-weight:700">radarconsultancy.co</a></div>
   </div>
 </div>
 
-<!-- LOADING -->
-<div id="loading-screen" class="hidden">
-  <div class="loading-wrap">
-    <div class="scan-ring"></div>
-    <p id="loading-msg">Analysing your visibility profile…</p>
-    <small>Estimating across 12 query types and 4 platforms</small>
+<!-- ═══════════════ SCAN ANIMATION ═══════════════ -->
+<div id="scan">
+  <div class="scan-title">ESTIMATING <span id="scan-subject-label" style="color:var(--lavender)"></span></div>
+  <div class="scan-sub">Modelling visibility across 12 query types × 4 AI platforms</div>
+
+  <div class="scan-grid">
+    <div class="scan-platform" id="plat-claude">
+      <div class="sp-icon">🤖</div>
+      <div class="sp-name">Claude</div>
+      <div class="sp-status" id="st-claude">Waiting...</div>
+    </div>
+    <div class="scan-platform" id="plat-chatgpt">
+      <div class="sp-icon">💬</div>
+      <div class="sp-name">ChatGPT</div>
+      <div class="sp-status" id="st-chatgpt">Waiting...</div>
+    </div>
+    <div class="scan-platform" id="plat-perplexity">
+      <div class="sp-icon">🔍</div>
+      <div class="sp-name">Perplexity</div>
+      <div class="sp-status" id="st-perplexity">Waiting...</div>
+    </div>
+    <div class="scan-platform" id="plat-gemini">
+      <div class="sp-icon">✦</div>
+      <div class="sp-name">Gemini</div>
+      <div class="sp-status" id="st-gemini">Waiting...</div>
+    </div>
+  </div>
+
+  <div class="scan-queries" id="scan-queries"></div>
+
+  <div class="scan-progress">
+    <div class="sp-label" id="scan-pct-label">ANALYSING — 0%</div>
+    <div class="sp-bar-wrap"><div class="sp-bar-fill" id="scan-bar"></div></div>
   </div>
 </div>
 
-<!-- RESULTS -->
-<div id="results-screen" class="hidden">
-  <div class="results-wrap">
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<div id="dashboard">
 
-    <div class="r-header">
-      <h2>RADAR VISIBILITY ESTIMATE</h2>
-      <p id="res-subtitle">Generated for — radarconsultancy.co</p>
+  <div class="topbar">
+    <div class="tb-logo">
+      <a href="https://radarconsultancy.co/" target="_blank" style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:rgba(255,255,255,0.85);text-decoration:none;">RADAR</a>
+    </div>
+    <div class="tb-sep"></div>
+    <span class="tb-subject" id="tb-subject"></span>
+    <div class="tb-actions">
+      <button class="tb-btn" onclick="window.print()">Export PDF</button>
+      <button class="tb-btn" onclick="resetScan()">New Estimate</button>
+      <button class="tb-btn primary" onclick="document.getElementById('cta-section').scrollIntoView({behavior:'smooth'})">Get Verified Audit</button>
+    </div>
+  </div>
+
+  <div class="hero" id="hero-section">
+    <div class="hero-left">
+      <div class="hero-eyebrow">ESTIMATED VISIBILITY PROFILE — <span id="h-date"></span></div>
+      <div class="hero-name" id="h-name"></div>
+      <div class="hero-topic" id="h-topic"></div>
+
+      <div style="display:flex;align-items:flex-end;gap:32px;flex-wrap:wrap">
+        <div>
+          <div class="score-dial-wrap">
+            <svg class="score-dial-svg" viewBox="0 0 200 200">
+              <circle class="dial-bg" cx="100" cy="100" r="80"/>
+              <circle class="dial-fill" id="dial-circle" cx="100" cy="100" r="80"
+                stroke-dasharray="502" stroke-dashoffset="502"
+                stroke="url(#dialGrad)"/>
+              <defs>
+                <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#1530A8"/>
+                  <stop offset="100%" stop-color="#D6B3E0"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="dial-center">
+              <div class="dial-score" id="dial-score">0</div>
+              <div class="dial-max">/ 144 est.</div>
+            </div>
+          </div>
+          <div class="score-grade" id="score-grade"></div>
+        </div>
+        <div class="hero-summary" id="hero-summary"></div>
+      </div>
     </div>
 
-    <div class="warning-banner">
-      This is an AI-estimated baseline, not a live measurement. It does not run live queries on ChatGPT, Perplexity or Gemini. Treat it as a directional indicator of likely gaps — not a precise score. For a verified measurement, book a <strong>Radar Authority Audit</strong>.
+    <div class="platform-cards" id="platform-cards"></div>
+  </div>
+
+  <div class="content">
+    <div>
+      <!-- QUERY BREAKDOWN -->
+      <div class="section-title">ESTIMATED QUERY VISIBILITY — 12 QUERY TYPES × 4 PLATFORMS</div>
+      <div class="query-table">
+        <div class="qt-header">
+          <div class="qt-h">Query</div>
+          <div class="qt-h">Claude</div>
+          <div class="qt-h">GPT</div>
+          <div class="qt-h">⊕ Perp</div>
+          <div class="qt-h">Gemini</div>
+        </div>
+        <div id="query-rows"></div>
+      </div>
+
+      <!-- SCORE KEY -->
+      <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.35)">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:16px" class="score-0">0</span> Unlikely to appear
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.35)">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:16px" class="score-1">1</span> May be briefly mentioned
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.35)">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:16px" class="score-2">2</span> Likely referenced with context
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.35)">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:16px" class="score-3">3</span> Likely primary citation
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.2);font-family:'DM Mono',monospace;letter-spacing:0.3px;margin-top:4px;width:100%">Scores are AI-estimated based on known citation factors — not live platform data</div>
+      </div>
+
+      <!-- GAP REPORT -->
+      <div class="section-title" style="margin-top:28px">LIKELY VISIBILITY GAPS</div>
+      <div class="gap-report" id="gap-report"></div>
+
+      <!-- BENCHMARK COMPARISON -->
+      <div class="section-title" style="margin-top:28px">BENCHMARK COMPARISON</div>
+      <div class="comparison" id="comparison"></div>
+
+      <!-- DISCLAIMER -->
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px 20px;margin-top:24px;display:flex;gap:12px;align-items:flex-start">
+        <div style="color:#FBBF24;font-size:14px;flex-shrink:0;margin-top:1px">⚠</div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#FBBF24;margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.5px">ESTIMATED PROFILE — NOT A LIVE MEASUREMENT</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.6">This estimate is generated by AI based on known visibility factors for your name, topic and location. It does not run live queries on ChatGPT, Perplexity or Gemini. Treat it as a directional indicator of likely gaps — not a precise score. For a verified measurement, book a <a href="https://radarconsultancy.co/pages/contact" target="_blank" style="color:rgba(255,255,255,0.85);font-weight:600;text-decoration:underline">Radar Authority Audit</a>.</div>
+        </div>
+      </div>
     </div>
 
-    <div class="score-hero">
-      <div>
-        <div class="score-big" id="res-score">—<span>/144</span></div>
-        <div class="score-bar-track"><div class="score-bar-fill" id="res-bar" style="width:0%"></div></div>
-      </div>
-      <div class="score-right">
-        <div class="score-grade" id="res-grade">ESTIMATED</div>
-        <div class="score-name" id="res-name">—</div>
-        <div class="score-topic" id="res-topic">—</div>
-      </div>
-    </div>
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="cta-section">
 
-    <div class="section-title">ESTIMATED PLATFORM SCORES — OUT OF 36 EACH</div>
-    <div class="platform-grid">
-      <div class="plat-card">
-        <div class="plat-name">ChatGPT</div>
-        <div class="plat-score" id="p-chatgpt">—<span>/36</span></div>
-        <div class="plat-bar-track"><div class="plat-bar-fill" id="pb-chatgpt" style="width:0%"></div></div>
+      <div class="action-card" id="action-card">
+        <div class="ac-title">What This Means For You</div>
+        <div id="action-items"></div>
       </div>
-      <div class="plat-card">
-        <div class="plat-name">Claude</div>
-        <div class="plat-score" id="p-claude">—<span>/36</span></div>
-        <div class="plat-bar-track"><div class="plat-bar-fill" id="pb-claude" style="width:0%"></div></div>
-      </div>
-      <div class="plat-card">
-        <div class="plat-name">Gemini</div>
-        <div class="plat-score" id="p-gemini">—<span>/36</span></div>
-        <div class="plat-bar-track"><div class="plat-bar-fill" id="pb-gemini" style="width:0%"></div></div>
-      </div>
-      <div class="plat-card">
-        <div class="plat-name">Perplexity</div>
-        <div class="plat-score" id="p-perplexity">—<span>/36</span></div>
-        <div class="plat-bar-track"><div class="plat-bar-fill" id="pb-perplexity" style="width:0%"></div></div>
-      </div>
-    </div>
 
-    <div class="section-title">ESTIMATED QUERY VISIBILITY — 12 QUERY TYPES × 4 PLATFORMS</div>
-    <div class="query-grid" id="query-grid"></div>
-
-    <div class="section-title">LIKELY VISIBILITY GAPS</div>
-    <div class="gaps-list" id="gaps-list"></div>
-
-    <div class="section-title">RECOMMENDED ACTIONS</div>
-    <div class="actions-list" id="actions-list"></div>
-
-    <div class="cta-card" id="cta-section">
-      <div class="cta-left">
-        <h3>Radar Authority Audit</h3>
-        <p>A personalised AI visibility roadmap. A 90-minute deep-dive into your specific gaps, what is causing them and a prioritised plan to close them. Includes a verified Radar Visibility Score run live across all four platforms.</p>
-      </div>
-      <div class="cta-right">
+      <div class="cta-card">
+        <div class="cta-label">Radar Consultancy</div>
+        <div class="cta-title">Get your verified score with a Radar Authority Audit</div>
+        <div class="cta-desc">This estimate shows likely gaps. The Authority Audit runs the real queries and measures your actual visibility.</div>
         <div class="cta-price">$450</div>
-        <div class="cta-price-note">One-off payment</div>
-        <a href="https://radarconsultancy.co/pages/contact" class="cta-btn">Book my Authority Audit →</a>
+        <div class="cta-price-note" style="margin-bottom:18px">One-off payment</div>
+        <button class="cta-btn" onclick="window.open('https://radarconsultancy.co/pages/contact','_blank')">Book a Discovery Call</button>
+        <div class="cta-features">
+          <div class="cta-feature"><span class="cta-check">✓</span> Verified visibility measurement (not estimated)</div>
+          <div class="cta-feature"><span class="cta-check">✓</span> A personalised AI visibility roadmap</div>
+          <div class="cta-feature"><span class="cta-check">✓</span> Schema.org structured data</div>
+          <div class="cta-feature"><span class="cta-check">✓</span> 90-day authority content plan</div>
+        </div>
       </div>
-    </div>
 
-    <div class="disclaimer">
-      This estimate is generated by AI based on known citation factors and structural visibility signals.<br>
-      It does not access live data from ChatGPT, Perplexity, Gemini or any other platform.<br>
-      Results indicate likely visibility patterns — not confirmed measurements.<br>
-      For verified scores, book a Radar Authority Audit at radarconsultancy.co
-    </div>
+      <!-- RETAINER CARD -->
+      <div style="background:linear-gradient(135deg,#B87FCC 0%,#9B5AB5 100%);border:1px solid rgba(214,179,224,0.4);border-radius:12px;padding:24px;margin-top:14px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#D6B3E0,#E5F3C7)"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:10px">Ongoing Partnership</div>
+        <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;line-height:1.2;margin-bottom:10px">Radar Authority Architecture<span style="font-size:13px">™</span></div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:16px">For experts committed to long-term AI visibility. Radar extracts your thinking, structures it into a knowledge framework and builds the content ecosystem AI needs to consistently surface your expertise.</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--sage);line-height:1;margin-bottom:4px">From $2,500</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px">Per month · Tailored to your scope</div>
+        <button style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:8px;padding:13px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'" onclick="window.open('https://radarconsultancy.co/pages/contact','_blank')">Enquire About a Retainer</button>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px"><span style="color:#D6B3E0;font-size:12px">✓</span> Knowledge extraction and framework development</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px"><span style="color:#D6B3E0;font-size:12px">✓</span> Schema.org and structured data architecture</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px"><span style="color:#D6B3E0;font-size:12px">✓</span> Content ecosystem built for AI citation</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px"><span style="color:#D6B3E0;font-size:12px">✓</span> Ongoing visibility monitoring and refinement</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:6px"><span style="color:#D6B3E0;font-size:12px">✓</span> Strategy built on what your audit reveals</div>
+        </div>
+      </div>
 
+    </div>
+  </div>
+
+  <div class="report-footer">
+    RADAR VISIBILITY ESTIMATE · AI-GENERATED BASELINE · NOT A LIVE MEASUREMENT · RADAR CONSULTANCY · RADARCONSULTANCY.CO · <span id="footer-date"></span>
   </div>
 </div>
 
 <script>
-async function captureToKlaviyo(firstname, email, brandName, expertise, industry, location) {
-  try {
-    await fetch('/api/klaviyo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstname, email, brandName, expertise, industry, location })
-    });
-  } catch(e) {
-    console.warn('Klaviyo capture failed silently:', e);
-  }
-}
+// ─── STATE ───────────────────────────────────────────
+let userData = {};
+let scanData = {};
 
-const loadingMsgs = [
-  'Analysing your visibility profile…',
-  'Estimating name recognition across platforms…',
-  'Checking topic authority signals…',
-  'Mapping likely citation gaps…',
-  'Building your estimate…'
+const PLATFORMS = ['claude','chatgpt','perplexity','gemini'];
+const PLATFORM_META = {
+  claude:     { icon:'🤖', name:'Claude',     color:'#7C8CF8' },
+  chatgpt:    { icon:'💬', name:'ChatGPT',    color:'#10A37F' },
+  perplexity: { icon:'🔍', name:'Perplexity', color:'#20B2AA' },
+  gemini:     { icon:'✦',  name:'Gemini',     color:'#EA4335' },
+};
+
+const QUERY_CATEGORIES = [
+  'Brand Recognition','Brand Recognition','Brand Recognition',
+  'Expert Authority','Expert Authority','Expert Authority',
+  'Topic Ownership','Topic Ownership','Topic Ownership',
+  'Competitive Context','Comparative Queries','Trust Signals'
 ];
 
-let msgIdx = 0, msgInterval;
+// ─── GATE → SCAN ──────────────────────────────────────
+async function startScan() {
+  const fn   = document.getElementById('g-firstname').value.trim();
+  const email= document.getElementById('g-email').value.trim();
+  const subj = document.getElementById('g-subject').value.trim();
+  const topic= document.getElementById('g-topic').value.trim();
+  const niche= document.getElementById('g-niche').value.trim();
+  const loc  = document.getElementById('g-location').value.trim();
 
-function cycleMsg() {
-  msgIdx = (msgIdx + 1) % loadingMsgs.length;
-  const el = document.getElementById('loading-msg');
-  if (el) el.textContent = loadingMsgs[msgIdx];
-}
-
-function resetScan() {
-  document.getElementById('gate-screen').classList.remove('hidden');
-  document.getElementById('results-screen').classList.add('hidden');
-  document.getElementById('topbar-actions-gate').classList.remove('hidden');
-  document.getElementById('topbar-actions-results').classList.add('hidden');
-}
-
-async function runEstimate() {
-  const firstname = document.getElementById('inp-firstname').value.trim();
-  const email = document.getElementById('inp-email').value.trim();
-  const name = document.getElementById('inp-name').value.trim();
-  const expertise = document.getElementById('inp-expertise').value.trim();
-  const industry = document.getElementById('inp-industry').value.trim();
-  const location = document.getElementById('inp-location').value.trim();
-
-  if (!firstname || !email || !name || !expertise) {
-    alert('Please fill in your name, email, brand name and expertise area.');
+  if (!fn || !email || !subj || !topic) {
+    alert('Please fill in your name, email, subject and expertise topic.');
     return;
   }
+  if (!email.includes('@')) { alert('Please enter a valid email.'); return; }
 
-  document.getElementById('gate-btn').disabled = true;
-  document.getElementById('gate-screen').classList.add('hidden');
-  document.getElementById('loading-screen').classList.remove('hidden');
-  msgInterval = setInterval(cycleMsg, 2200);
-  captureToKlaviyo(firstname, email, name, expertise, industry, location);
+  userData = { fn, email, subj, topic, niche, loc };
+  console.log('RADAR LEAD:', userData);
 
-  const prompt = `You are generating a Radar Visibility Estimate for an expert. The Radar Visibility Score is a directional diagnostic (0–144) measuring how visible someone likely is across AI platforms based on known citation factors — not live data.
+  // Show scan screen
+  document.getElementById('gate').style.display = 'none';
+  const scanEl = document.getElementById('scan');
+  scanEl.style.display = 'flex';
+  document.getElementById('scan-subject-label').textContent = subj.toUpperCase();
 
-Person: ${name}
-Expertise: ${expertise}
-Industry: ${industry || 'not specified'}
-Location: ${location || 'not specified'}
-
-Generate a realistic, directional visibility estimate as a JSON object only. No preamble, no markdown backticks, no explanation. Return exactly this structure:
-
-{
-  "score": <integer 0-144>,
-  "grade": "<ESTIMATED: Very Low Visibility|ESTIMATED: Low Visibility|ESTIMATED: Moderate Visibility|ESTIMATED: Good Visibility|ESTIMATED: Strong Visibility>",
-  "chatgpt": <integer 0-36>,
-  "claude": <integer 0-36>,
-  "gemini": <integer 0-36>,
-  "perplexity": <integer 0-36>,
-  "queries": [
-    {"type": "Name recognition", "result": "<one sentence on likely name visibility>"},
-    {"type": "Topic authority", "result": "<one sentence>"},
-    {"type": "Problem framing", "result": "<one sentence>"},
-    {"type": "Framework citation", "result": "<one sentence>"},
-    {"type": "Comparison queries", "result": "<one sentence>"},
-    {"type": "Location-based", "result": "<one sentence>"},
-    {"type": "Recommendation queries", "result": "<one sentence>"},
-    {"type": "Credential signals", "result": "<one sentence>"},
-    {"type": "Content indexing", "result": "<one sentence>"},
-    {"type": "Social proof signals", "result": "<one sentence>"},
-    {"type": "Competitor context", "result": "<one sentence>"},
-    {"type": "AI training data presence", "result": "<one sentence>"}
-  ],
-  "gaps": [
-    "<specific visibility gap — under 25 words>",
-    "<specific visibility gap — under 25 words>",
-    "<specific visibility gap — under 25 words>",
-    "<specific visibility gap — under 25 words>"
-  ],
-  "actions": [
-    "<specific first action to improve AI visibility — under 25 words>",
-    "<specific second action — under 25 words>",
-    "<specific third action — under 25 words>"
-  ]
+  await runScan();
 }
 
-Score the person honestly. Most experts score between 8 and 55 unless they are very widely published or have named frameworks cited online. No em dashes. No Oxford commas.`;
+async function runScan() {
+  const { subj, topic, niche, loc } = userData;
+
+  // Animate platform sequence
+  const platformOrder = ['claude','chatgpt','perplexity','gemini'];
+  let progress = 0;
+
+  const updateProgress = (pct, label) => {
+    document.getElementById('scan-bar').style.width = pct + '%';
+    document.getElementById('scan-pct-label').textContent = `${label} — ${Math.round(pct)}%`;
+  };
+
+  const addQuery = (text, state) => {
+    const box = document.getElementById('scan-queries');
+    const el = document.createElement('div');
+    el.className = `sq-item ${state}`;
+    el.innerHTML = `<span class="sq-dot"></span><span>${text}</span>`;
+    box.appendChild(el);
+    if (box.children.length > 5) box.removeChild(box.children[0]);
+  };
+
+  // Simulate platform scanning with staggered animation
+  for (let pi = 0; pi < platformOrder.length; pi++) {
+    const pid = platformOrder[pi];
+    const platEl = document.getElementById(`plat-${pid}`);
+    const stEl   = document.getElementById(`st-${pid}`);
+    platEl.classList.add('active');
+    stEl.textContent = 'Scanning...';
+
+    const queries = [
+      `Who is ${subj}?`,
+      `${subj} ${topic}`,
+      `Best ${topic} expert in ${loc || 'Australia'}`,
+    ];
+
+    for (const q of queries) {
+      addQuery(q, 'running');
+      await sleep(320 + Math.random() * 280);
+      progress += 8.33;
+      updateProgress(progress, `Scanning ${PLATFORM_META[pid].name}`);
+    }
+
+    platEl.classList.remove('active');
+    platEl.classList.add('done');
+    stEl.textContent = 'Complete ✓';
+  }
+
+  updateProgress(95, 'Generating report');
+  addQuery('Compiling gap analysis...', 'running');
+
+  // Now call Claude API for the actual scoring
+  await fetchScoreFromClaude(subj, topic, niche, loc);
+
+  updateProgress(100, 'Complete');
+  await sleep(600);
+
+  showDashboard();
+}
+
+async function fetchScoreFromClaude(subj, topic, niche, loc) {
+  const prompt = `You are the Radar Visibility Scoring Engine for Radar Consultancy. Your job is to assess and score how visible "${subj}" is in AI search systems for the topic "${topic}" in the niche "${niche || 'general'}" from "${loc || 'Australia'}".
+
+You are simulating the Radar Visibility Score methodology: 12 standardised queries run across 4 AI platforms (Claude, ChatGPT, Perplexity, Gemini), each scored 0–3:
+- 0 = Not found / not mentioned
+- 1 = Briefly mentioned
+- 2 = Referenced with meaningful context
+- 3 = Primary citation / expert source
+
+The 12 query types are:
+1. Direct name recognition ("Who is [name]?")
+2. Brand + topic ("${subj} ${topic}")
+3. Name + credential ("${subj} expert")
+4. Expert identification ("who is the leading ${topic} expert in ${loc || 'Australia'}?")
+5. Problem-solution ("best ${topic} approach")
+6. Credential query ("${topic} specialist ${loc || 'Australia'}")
+7. Topic authority ("${topic} framework or methodology")
+8. Topic definition ("what is the best approach to ${topic}?")
+9. Topic trend ("latest thinking on ${topic}")
+10. Competitor context ("${topic} experts compared")
+11. Comparative ("${subj} vs other ${topic} experts")
+12. Trust signal ("is ${subj} credible for ${topic}?")
+
+Based on realistic AI visibility for someone named "${subj}" in "${topic}", generate plausible scores. Be realistic and calibrated:
+- Globally recognised figures (Gabor Maté, Brené Brown, major celebrities): score 90-130
+- Nationally known experts with books, major media, Wikipedia: score 60-90
+- Well-established niche experts with strong online presence: score 35-60
+- Mid-tier professionals building their profile: score 15-35
+- Early-stage or low-visibility experts: score 5-20
+
+CRITICAL: The gap analysis must be tailored to the person's ACTUAL estimated visibility level. Do not apply generic "you don't exist" gaps to well-known people. Instead identify the specific gaps that are realistic for their situation:
+- For high-visibility people: gaps might be about citation accuracy, topic ownership in specific niches, competitor displacement, or schema markup for AI-specific retrieval
+- For mid-visibility people: gaps might be about inconsistent attribution, missing structured data, thin coverage on specific platforms
+- For low-visibility people: gaps might be about foundational entity recognition, content footprint, third-party citations
+
+Respond ONLY in valid JSON, no markdown, no backticks:
+{
+  "scores": {
+    "claude":     [0,1,0,1,0,1,0,0,1,0,0,1],
+    "chatgpt":    [0,1,0,0,1,0,0,1,0,0,1,0],
+    "perplexity": [1,1,0,1,0,0,1,0,0,1,0,0],
+    "gemini":     [0,0,1,0,1,0,0,0,1,0,1,0]
+  },
+  "queries": [
+    "Who is ${subj}?",
+    "${subj} ${topic}",
+    "${subj} expert credentials",
+    "Leading ${topic} expert in ${loc || 'Australia'}",
+    "Best approach to ${topic}",
+    "${topic} specialist ${loc || 'Australia'}",
+    "${topic} framework or methodology",
+    "What is the best ${topic} approach?",
+    "Latest thinking on ${topic}",
+    "${topic} experts compared",
+    "${subj} vs other ${topic} experts",
+    "Is ${subj} credible for ${topic}?"
+  ],
+  "gaps": [
+    { "severity": "high", "title": "Specific gap title relevant to this person's actual situation", "detail": "2 sentences that are accurate and specific to their visibility level — not generic." },
+    { "severity": "high", "title": "Specific gap title", "detail": "2 sentences." },
+    { "severity": "med",  "title": "Specific gap title", "detail": "2 sentences." },
+    { "severity": "med",  "title": "Specific gap title", "detail": "2 sentences." },
+    { "severity": "low",  "title": "Specific gap title", "detail": "2 sentences." }
+  ],
+  "actions": [
+    "Specific action 1 calibrated to ${subj}'s actual visibility level and situation",
+    "Specific action 2",
+    "Specific action 3",
+    "Specific action 4"
+  ],
+  "summary": "3 sentences summarising ${subj}'s AI visibility situation honestly and accurately. Acknowledge high visibility where it exists. Be specific about what the score means for their particular situation and topic.",
+  "benchmarkScores": {
+    "yourScore": 0,
+    "industryAverage": 31,
+    "topPerformer": 112,
+    "radarClient": 87
+  }
+}
+
+Make queries specific to ${subj} and ${topic}. Make gaps and actions directly relevant and accurate to their actual situation. The benchmarkScores.yourScore will be calculated — leave as 0.`;
 
   try {
-    const response = await fetch('/api/claude', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }]
+        model: "claude-sonnet-4-6",
+        max_tokens: 4000,
+        messages: [{ role: "user", content: prompt }]
       })
     });
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
-    showResults(result, name, expertise);
-  } catch (err) {
-    console.error(err);
-    // Fallback
-    showResults({
-      score: 18,
-      grade: 'ESTIMATED: Low Visibility',
-      chatgpt: 5, claude: 6, gemini: 4, perplexity: 3,
-      queries: [
-        {type:'Name recognition', result:'Unlikely to appear in name-based queries without supporting web presence.'},
-        {type:'Topic authority', result:'Topic may be recognised but not attributed to this specific expert.'},
-        {type:'Problem framing', result:'Problem language is common — harder to differentiate without a named framework.'},
-        {type:'Framework citation', result:'No named framework detected — a significant gap in AI citation potential.'},
-        {type:'Comparison queries', result:'Unlikely to appear when AI compares experts in this space.'},
-        {type:'Location-based', result:'Local visibility signals are weak without location-specific content.'},
-        {type:'Recommendation queries', result:'Not likely to be recommended when AI is asked for expert suggestions.'},
-        {type:'Credential signals', result:'Credentials may exist but are not structured for AI discovery.'},
-        {type:'Content indexing', result:'Limited indexed content reduces training data presence significantly.'},
-        {type:'Social proof signals', result:'Social proof exists but is not in AI-readable structured format.'},
-        {type:'Competitor context', result:'Competitors with more structured content are likely appearing instead.'},
-        {type:'AI training data presence', result:'Low presence in the type of content AI systems are trained on.'}
-      ],
-      gaps: [
-        'No named intellectual framework for AI systems to cite and attribute.',
-        'Expertise exists in social and conversational formats that AI cannot easily index.',
-        'No standalone authority page structured for AI discovery.',
-        'Credential signals are present but not formatted as citable reference material.'
-      ],
-      actions: [
-        'Create a named framework or model that AI systems can identify and attribute to you.',
-        'Publish a standalone authority page at a permanent URL with Schema.org structured data.',
-        'Develop long-form open-web content that demonstrates expertise in your specific niche.'
-      ]
-    }, name, expertise);
+    const data = await resp.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+
+    // Calculate total score
+    let total = 0;
+    for (const plat of PLATFORMS) {
+      for (const s of (parsed.scores[plat] || [])) total += s;
+    }
+    parsed.benchmarkScores.yourScore = total;
+    parsed.totalScore = total;
+
+    scanData = parsed;
+
+  } catch(err) {
+    // Fallback demo data if API fails
+    scanData = generateFallbackData(subj, topic, loc);
+  }
+}
+
+function generateFallbackData(subj, topic, loc) {
+  const s = () => Math.floor(Math.random() * 3);
+  const scores = {};
+  let total = 0;
+  for (const p of PLATFORMS) {
+    scores[p] = Array.from({length:12}, () => { const v = s(); total += v; return v; });
+  }
+  return {
+    scores, totalScore: total,
+    queries: [
+      `Who is ${subj}?`, `${subj} ${topic}`, `${subj} expert credentials`,
+      `Leading ${topic} expert in ${loc||'Australia'}`, `Best approach to ${topic}`,
+      `${topic} specialist ${loc||'Australia'}`, `${topic} framework`,
+      `Best ${topic} approach`, `Latest thinking on ${topic}`,
+      `${topic} experts compared`, `${subj} vs other experts`,
+      `Is ${subj} credible for ${topic}?`
+    ],
+    gaps: [
+      { severity:'high', title:'Topic ownership gaps in AI responses', detail:`When AI platforms answer questions about ${topic}, they draw on a range of sources. The specific angle and methodology that ${subj} brings is not yet being attributed to them distinctly.` },
+      { severity:'high', title:'Missing Schema.org structured data', detail:`Without Schema.org Person and DefinedTermSet markup, AI systems cannot reliably attribute frameworks or methodologies to ${subj} across all platforms. This is especially important for Perplexity and Gemini.` },
+      { severity:'med', title:'Inconsistent attribution across platforms', detail:`${subj} may be referenced on some platforms but not others. Consistent attribution requires content that is structured the same way across multiple sources.` },
+      { severity:'med', title:'No named proprietary framework in AI knowledge base', detail:`A distinctively named methodology increases citation probability significantly. Generic expertise descriptions are harder for AI systems to attribute than a named framework.` },
+      { severity:'low', title:'Limited third-party citation signals', detail:`AI systems weight third-party references heavily. Increasing citations from publications, podcasts and industry sites that your audience trusts will lift scores across all platforms.` }
+    ],
+    actions: [
+      `Audit ${subj}'s current Schema.org markup and add Person and expertise structured data`,
+      `Publish a named proprietary framework with clear attribution signals`,
+      `Identify the three queries where scores are lowest and create content that directly answers them`,
+      `Build third-party citation signals through guest articles and podcast appearances in your niche`
+    ],
+    summary: `This is an AI-estimated baseline for ${subj} in ${topic}. The estimate reflects likely visibility patterns based on known AI citation factors and actual scores may vary. The gaps identified represent the most common opportunities for improvement at this visibility level.`,
+    benchmarkScores: { yourScore: total, industryAverage: 31, topPerformer: 112, radarClient: 87 }
+  };
+}
+
+// ─── SHOW DASHBOARD ──────────────────────────────────
+function showDashboard() {
+  document.getElementById('scan').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  const { subj, topic, fn } = userData;
+  const d = scanData;
+  const total = d.totalScore;
+
+  // Date
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('h-date').textContent = dateStr;
+  document.getElementById('footer-date').textContent = dateStr;
+
+  // Topbar
+  document.getElementById('tb-subject').textContent = subj;
+
+  // Hero
+  document.getElementById('h-name').textContent = subj.toUpperCase();
+  document.getElementById('h-topic').textContent = topic;
+
+  // Dial animation
+  setTimeout(() => {
+    const pct = total / 144;
+    const circumference = 502;
+    const offset = circumference - (pct * circumference);
+    document.getElementById('dial-circle').style.strokeDashoffset = offset;
+    animateNumber('dial-score', 0, total, 1400);
+  }, 200);
+
+  // Grade
+  const grade = getGrade(total);
+  const gradeEl = document.getElementById('score-grade');
+  gradeEl.className = `score-grade ${grade.cls}`;
+  gradeEl.innerHTML = `<span class="grade-dot"></span>${grade.label}`;
+
+  // Summary
+  document.getElementById('hero-summary').textContent = d.summary;
+
+  // Platform cards
+  const pcEl = document.getElementById('platform-cards');
+  pcEl.innerHTML = '';
+  for (const pid of PLATFORMS) {
+    const pm = PLATFORM_META[pid];
+    const platScores = d.scores[pid] || [];
+    const platTotal = platScores.reduce((a,b)=>a+b,0);
+    const platMax = 36;
+    const pct = Math.round((platTotal/platMax)*100);
+
+    const card = document.createElement('div');
+    card.className = 'plat-card';
+    card.innerHTML = `
+      <div class="plat-icon">${pm.icon}</div>
+      <div class="plat-info">
+        <div class="plat-name">${pm.name}</div>
+        <div class="plat-detail">${platScores.filter(s=>s>0).length} of 12 queries — ${pct}% visibility</div>
+        <div class="plat-bar">
+          <div class="plat-bar-fill" style="width:0%;background:${pm.color}" data-target="${pct}"></div>
+        </div>
+      </div>
+      <div class="plat-score-wrap">
+        <div class="plat-score-num">${platTotal}</div>
+        <div class="plat-score-max">/ ${platMax}</div>
+      </div>`;
+    pcEl.appendChild(card);
   }
 
-  clearInterval(msgInterval);
-  document.getElementById('loading-screen').classList.add('hidden');
-}
-
-function showResults(r, name, expertise) {
-  document.getElementById('results-screen').classList.remove('hidden');
-  document.getElementById('topbar-actions-gate').classList.add('hidden');
-  document.getElementById('topbar-actions-results').classList.remove('hidden');
-
-  document.getElementById('res-subtitle').textContent = 'Generated for ' + name + ' — radarconsultancy.co';
-  document.getElementById('res-name').textContent = name;
-  document.getElementById('res-topic').textContent = expertise;
-  document.getElementById('res-grade').textContent = r.grade;
-
-  // Animate score
-  animCount('res-score', r.score, '/144');
+  // Animate platform bars after a tick
   setTimeout(() => {
-    document.getElementById('res-bar').style.width = Math.round(r.score / 144 * 100) + '%';
-  }, 100);
+    document.querySelectorAll('.plat-bar-fill').forEach(el => {
+      el.style.transition = 'width 1s cubic-bezier(0.34,1.56,0.64,1)';
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 300);
 
-  // Platforms
-  ['chatgpt','claude','gemini','perplexity'].forEach(p => {
-    document.getElementById('p-' + p).innerHTML = r[p] + '<span>/36</span>';
-    setTimeout(() => {
-      document.getElementById('pb-' + p).style.width = Math.round(r[p] / 36 * 100) + '%';
-    }, 300);
+  // Query rows
+  const qrEl = document.getElementById('query-rows');
+  qrEl.innerHTML = '';
+  (d.queries || []).forEach((q, i) => {
+    const row = document.createElement('div');
+    row.className = 'qt-row';
+    const cells = PLATFORMS.map(pid => {
+      const s = (d.scores[pid] || [])[i] ?? 0;
+      return `<div class="qt-score score-${s}">${s}</div>`;
+    }).join('');
+    row.innerHTML = `
+      <div>
+        <div class="qt-query">${q}</div>
+        <div class="qt-query-cat">${QUERY_CATEGORIES[i] || ''}</div>
+      </div>
+      ${cells}`;
+    qrEl.appendChild(row);
   });
 
-  // Queries
-  const qg = document.getElementById('query-grid');
-  qg.innerHTML = r.queries.map(q => `
-    <div class="query-row">
-      <div class="query-type">${q.type}</div>
-      <div class="query-val">${q.result}</div>
-    </div>`).join('');
+  // Gap report
+  const grEl = document.getElementById('gap-report');
+  grEl.innerHTML = '';
+  (d.gaps || []).forEach(g => {
+    const sevClass = g.severity === 'high' ? 'sev-high' : g.severity === 'med' ? 'sev-med' : 'sev-low';
+    const sevLabel = g.severity === 'high' ? 'H' : g.severity === 'med' ? 'M' : 'L';
+    const item = document.createElement('div');
+    item.className = 'gap-item';
+    item.innerHTML = `
+      <div class="gap-severity ${sevClass}">${sevLabel}</div>
+      <div class="gap-text"><strong>${g.title}</strong>${g.detail}</div>`;
+    grEl.appendChild(item);
+  });
 
-  // Gaps
-  document.getElementById('gaps-list').innerHTML = r.gaps.map(g => `
-    <div class="gap-item"><div class="gap-dot"></div><div class="gap-text">${g}</div></div>`).join('');
+  // Action items — replaced with insight summary, not specific steps
+  const aiEl = document.getElementById('action-items');
+  aiEl.innerHTML = '';
+  const total144 = d.totalScore || 0;
+  const pct = Math.round((total144 / 144) * 100);
+  const insight = total144 < 30
+    ? `Your estimated score of ${total144}/144 signals significant gaps in how AI systems are recognising and attributing your expertise. The gaps identified above point to where the biggest opportunities lie.`
+    : total144 < 70
+    ? `Your estimated score of ${total144}/144 shows a partial presence in AI search. You are being cited in some contexts but missing from others — and the gaps above reveal where attribution is breaking down.`
+    : `Your estimated score of ${total144}/144 reflects meaningful AI visibility. The gaps identified above show where attribution could be strengthened and where competitors may still be displacing you.`;
 
-  // Actions
-  document.getElementById('actions-list').innerHTML = r.actions.map((a, i) => `
-    <div class="action-item"><div class="action-num">${i+1}</div><div class="action-text">${a}</div></div>`).join('');
+  const insightEl = document.createElement('div');
+  insightEl.style.cssText = 'font-size:13px;color:rgba(255,255,255,0.8);line-height:1.7;margin-bottom:16px';
+  insightEl.textContent = insight;
+  aiEl.appendChild(insightEl);
 
-  window.scrollTo({top: 0, behavior: 'smooth'});
+  const ctaPrompt = document.createElement('div');
+  ctaPrompt.style.cssText = 'font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6;font-style:italic';
+  ctaPrompt.textContent = 'A personalised action plan is available as part of a Radar Authority Audit.';
+  aiEl.appendChild(ctaPrompt);
+
+  // Benchmark comparison
+  const bs = d.benchmarkScores || {};
+  const compEl = document.getElementById('comparison');
+  const compItems = [
+    { label: userData.fn || 'You', score: bs.yourScore || total, color: '#D6B3E0' },
+    { label: 'Industry average', score: bs.industryAverage || 31, color: '#6B7280' },
+    { label: 'Radar client avg', score: bs.radarClient || 87, color: '#E5F3C7' },
+    { label: 'Top performer', score: bs.topPerformer || 112, color: '#E5F3C7' },
+  ];
+
+  compEl.innerHTML = `<div class="section-title" style="margin-bottom:14px">HOW YOU COMPARE</div>`;
+  compItems.forEach(ci => {
+    const pct = Math.round((ci.score / 144) * 100);
+    compEl.innerHTML += `
+      <div class="comp-item">
+        <div class="comp-label">${ci.label}</div>
+        <div class="comp-bar">
+          <div class="comp-fill" style="width:0%;background:${ci.color}" data-target="${pct}"></div>
+        </div>
+        <div class="comp-num">${ci.score}</div>
+      </div>`;
+  });
+
+  setTimeout(() => {
+    document.querySelectorAll('.comp-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 500);
 }
 
-function animCount(id, target, suffix) {
+// ─── HELPERS ──────────────────────────────────────────
+function getGrade(score) {
+  if (score < 20)  return { label: 'ESTIMATED: Very Low Visibility', cls: 'grade-critical' };
+  if (score < 45)  return { label: 'ESTIMATED: Low Visibility', cls: 'grade-low' };
+  if (score < 75)  return { label: 'ESTIMATED: Moderate Visibility', cls: 'grade-moderate' };
+  if (score < 100) return { label: 'ESTIMATED: Good Visibility', cls: 'grade-good' };
+  return { label: 'ESTIMATED: Strong Visibility', cls: 'grade-strong' };
+}
+
+function animateNumber(id, from, to, duration) {
   const el = document.getElementById(id);
-  let current = 0;
-  const step = Math.ceil(target / 40);
-  const interval = setInterval(() => {
-    current = Math.min(current + step, target);
-    el.innerHTML = current + (suffix ? '<span>' + suffix + '</span>' : '');
-    if (current >= target) clearInterval(interval);
-  }, 35);
+  const start = performance.now();
+  const update = (now) => {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(from + (to - from) * ease);
+    if (t < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetScan() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('scan').innerHTML = '';
+  document.getElementById('gate').style.display = 'flex';
+  // Reset scan screen
+  document.getElementById('scan').innerHTML = `
+    <div class="scan-title">SCANNING <span id="scan-subject-label" style="color:var(--lavender)"></span></div>
+    <div class="scan-sub">Running 12 queries across 4 AI platforms</div>
+    <div class="scan-grid">
+      ${PLATFORMS.map(pid => `<div class="scan-platform" id="plat-${pid}">
+        <div class="sp-icon">${PLATFORM_META[pid].icon}</div>
+        <div class="sp-name">${PLATFORM_META[pid].name}</div>
+        <div class="sp-status" id="st-${pid}">Waiting...</div>
+      </div>`).join('')}
+    </div>
+    <div class="scan-queries" id="scan-queries"></div>
+    <div class="scan-progress">
+      <div class="sp-label" id="scan-pct-label">ANALYSING — 0%</div>
+      <div class="sp-bar-wrap"><div class="sp-bar-fill" id="scan-bar"></div></div>
+    </div>`;
+}
+
+// Allow Enter on gate
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('gate').style.display !== 'none') startScan();
+});
 </script>
 </body>
 </html>
