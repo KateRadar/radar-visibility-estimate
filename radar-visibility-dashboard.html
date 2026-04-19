@@ -993,6 +993,7 @@ async function runScan() {
 
     for (const q of queries) {
       addQuery(q, 'running');
+      updateProgress(progress, `Scanning ${PLATFORM_META[pid].name}`);
       await sleep(320 + Math.random() * 280);
       progress += 8.33;
       updateProgress(progress, `Scanning ${PLATFORM_META[pid].name}`);
@@ -1096,35 +1097,80 @@ Respond ONLY in valid JSON, no markdown, no backticks:
 
 Make queries specific to ${subj} and ${topic}. Make gaps and actions directly relevant and accurate to their actual situation. The benchmarkScores.yourScore will be calculated — leave as 0.`;
 
+  const fallback = generateFallbackData(subj, topic, loc);
   try {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+      scanData = fallback;
+      return;
+    }
+
+    const resp = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
-        messages: [{ role: "user", content: prompt }]
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await resp.json();
-    const text = data.content.map(i => i.text || '').join('');
-    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    const text = (data.content && data.content.map(i => i.text || '').join('')) || '';
+    if (!resp.ok || !text) throw new Error(data.error?.message || data.error || 'No response from model');
 
-    // Calculate total score
-    let total = 0;
-    for (const plat of PLATFORMS) {
-      for (const s of (parsed.scores[plat] || [])) total += s;
-    }
-    parsed.benchmarkScores.yourScore = total;
-    parsed.totalScore = total;
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    scanData = mergeScanPayload(parsed, fallback, subj, topic, loc);
 
-    scanData = parsed;
-
-  } catch(err) {
-    // Fallback demo data if API fails
-    scanData = generateFallbackData(subj, topic, loc);
+  } catch (err) {
+    console.warn('RADAR estimate API fallback:', err);
+    scanData = fallback;
   }
+}
+
+/** Ensures every dashboard section has data even when the model omits fields. */
+function mergeScanPayload(parsed, fallback, subj, topic, loc) {
+  const out = { ...fallback, ...parsed };
+  const fbScores = fallback.scores;
+  const scores = parsed.scores && typeof parsed.scores === 'object' ? { ...fbScores, ...parsed.scores } : fbScores;
+  for (const p of PLATFORMS) {
+    const row = Array.isArray(scores[p]) ? scores[p].slice(0, 12) : [];
+    while (row.length < 12) row.push(fbScores[p][row.length] ?? 0);
+    scores[p] = row.map(n => Math.max(0, Math.min(3, Number(n) || 0)));
+  }
+  out.scores = scores;
+
+  let total = 0;
+  for (const plat of PLATFORMS) {
+    for (const s of out.scores[plat]) total += s;
+  }
+  out.totalScore = total;
+
+  const queries = Array.isArray(parsed.queries) && parsed.queries.length
+    ? parsed.queries
+    : fallback.queries;
+  out.queries = queries.slice(0, 12);
+  while (out.queries.length < 12) out.queries.push(fallback.queries[out.queries.length]);
+
+  const gaps = Array.isArray(parsed.gaps) && parsed.gaps.length
+    ? parsed.gaps
+    : fallback.gaps;
+  out.gaps = gaps.slice(0, 5);
+  while (out.gaps.length < 5) out.gaps.push(fallback.gaps[out.gaps.length]);
+
+  out.actions = Array.isArray(parsed.actions) && parsed.actions.length ? parsed.actions : fallback.actions;
+  out.summary = (parsed.summary && String(parsed.summary).trim()) || fallback.summary;
+
+  const bench = parsed.benchmarkScores && typeof parsed.benchmarkScores === 'object'
+    ? parsed.benchmarkScores
+    : {};
+  out.benchmarkScores = {
+    yourScore: total,
+    industryAverage: Number(bench.industryAverage) || fallback.benchmarkScores.industryAverage,
+    topPerformer: Number(bench.topPerformer) || fallback.benchmarkScores.topPerformer,
+    radarClient: Number(bench.radarClient) || fallback.benchmarkScores.radarClient
+  };
+
+  return out;
 }
 
 function generateFallbackData(subj, topic, loc) {
@@ -1205,9 +1251,10 @@ function showDashboard() {
   // Platform cards
   const pcEl = document.getElementById('platform-cards');
   pcEl.innerHTML = '';
+  const scoresSafe = d.scores && typeof d.scores === 'object' ? d.scores : {};
   for (const pid of PLATFORMS) {
     const pm = PLATFORM_META[pid];
-    const platScores = d.scores[pid] || [];
+    const platScores = scoresSafe[pid] || [];
     const platTotal = platScores.reduce((a,b)=>a+b,0);
     const platMax = 36;
     const pct = Math.round((platTotal/platMax)*100);
@@ -1245,7 +1292,8 @@ function showDashboard() {
     const row = document.createElement('div');
     row.className = 'qt-row';
     const cells = PLATFORMS.map(pid => {
-      const s = (d.scores[pid] || [])[i] ?? 0;
+      const row = scoresSafe[pid] || [];
+      const s = Math.max(0, Math.min(3, Number(row[i]) || 0));
       return `<div class="qt-score score-${s}">${s}</div>`;
     }).join('');
     row.innerHTML = `
@@ -1261,8 +1309,9 @@ function showDashboard() {
   const grEl = document.getElementById('gap-report');
   grEl.innerHTML = '';
   (d.gaps || []).forEach(g => {
-    const sevClass = g.severity === 'high' ? 'sev-high' : g.severity === 'med' ? 'sev-med' : 'sev-low';
-    const sevLabel = g.severity === 'high' ? 'H' : g.severity === 'med' ? 'M' : 'L';
+    const sevRaw = String(g.severity || '').toLowerCase();
+    const sevClass = sevRaw === 'high' ? 'sev-high' : (sevRaw === 'med' || sevRaw === 'medium') ? 'sev-med' : 'sev-low';
+    const sevLabel = sevRaw === 'high' ? 'H' : (sevRaw === 'med' || sevRaw === 'medium') ? 'M' : 'L';
     const item = document.createElement('div');
     item.className = 'gap-item';
     item.innerHTML = `
