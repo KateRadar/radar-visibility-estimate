@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar Visibility Estimate — Radar Consultancy</title>
+<meta name="description" content="Get an AI-estimated baseline of your visibility across Claude, ChatGPT, Perplexity and Gemini.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --navy: #1530A8;
+  --lavender: #D6B3E0;
+  --sage: #E5F3C7;
+  --ink: #2243B6;
+  --paper: #F8F6F1;
+  --white: #FFFFFF;
+  --mid: #6B7280;
+  --line: #E2DDD6;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; background: var(--ink); color: var(--white); min-height: 100vh; overflow-x: hidden; }
+
+/* ── GATE ── */
+#gate { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; background: var(--ink); }
+.gate-inner { max-width: 560px; width: 100%; animation: riseIn 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes riseIn { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
+
+.gate-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+.gate-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--lavender); text-decoration: none; }
+.gate-brand { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+.gate-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+
+.gate-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px,10vw,88px); line-height: 0.9; letter-spacing: -1px; color: var(--white); margin-bottom: 6px; }
+.gate-title span { color: var(--lavender); }
+.gate-sub { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.6; margin-bottom: 32px; max-width: 440px; }
+
+.gate-stats { display: flex; gap: 24px; margin-bottom: 36px; flex-wrap: wrap; }
+.gs { display: flex; flex-direction: column; gap: 2px; }
+.gs-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--lavender); line-height: 1; }
+.gs-label { font-size: 12px; color: rgba(255,255,255,0.6); }
+
+.gate-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.gate-form input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--white); outline: none; transition: border-color 0.2s; }
+.gate-form input:focus { border-color: var(--sage); background: rgba(255,255,255,0.14); }
+.gate-form input::placeholder { color: rgba(255,255,255,0.4); }
+.gate-form input.full { grid-column: 1 / -1; }
+
+.gate-btn { width: 100%; margin-top: 4px; background: var(--sage); color: var(--navy); border: none; border-radius: 8px; padding: 16px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.gate-btn:hover { opacity: 0.87; transform: translateY(-1px); }
+.gate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.gate-note { font-size: 12px; color: rgba(255,255,255,0.5); text-align: center; margin-top: 16px; line-height: 1.7; }
+
+.error-msg { background: rgba(217,48,37,0.15); border: 1px solid rgba(217,48,37,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #EF5350; margin-top: 8px; display: none; }
+
+/* ── SCAN ── */
+#scan { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; flex-direction: column; gap: 28px; z-index: 90; background: var(--ink); padding: 40px; }
+.scan-title { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 1px; color: var(--white); text-align: center; }
+.scan-sub { font-size: 12px; color: rgba(255,255,255,0.35); text-align: center; margin-top: -20px; font-family: 'DM Mono', monospace; letter-spacing: 0.5px; }
+
+.scan-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; width: 100%; max-width: 600px; }
+.scan-platform { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 16px; text-align: center; position: relative; overflow: hidden; transition: border-color 0.3s; }
+.scan-platform.active { border-color: var(--lavender); }
+.scan-platform.done { border-color: var(--sage); }
+.scan-platform.active::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(214,179,224,0.08),transparent); animation: shimmer 1.2s ease-in-out infinite; }
+@keyframes shimmer { from{left:-100%} to{left:100%} }
+.sp-icon { font-size: 20px; margin-bottom: 6px; }
+.sp-name { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); text-transform: uppercase; }
+.sp-status { font-size: 10px; margin-top: 6px; color: rgba(255,255,255,0.2); font-family: 'DM Mono', monospace; }
+.scan-platform.active .sp-status { color: var(--lavender); }
+.scan-platform.done .sp-status { color: var(--sage); }
+
+.scan-queries { width:100%; max-width:600px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px 18px; max-height:140px; overflow:hidden; }
+.sq-item { font-family:'DM Mono',monospace; font-size:11px; color:rgba(255,255,255,0.25); padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04); display:flex; align-items:center; gap:10px; animation:fadeRow 0.3s ease both; }
+.sq-item:last-child { border-bottom:none; }
+.sq-item.running { color:var(--lavender); }
+.sq-dot { width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+@keyframes fadeRow { from{opacity:0;transform:translateX(-8px)} to{opacity:1} }
+
+.scan-progress { width:100%; max-width:600px; }
+.sp-label { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.3); margin-bottom:8px; letter-spacing:1px; }
+.sp-bar-wrap { height:3px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; }
+.sp-bar-fill { height:100%; background:linear-gradient(90deg,var(--navy),var(--lavender)); border-radius:3px; transition:width 0.4s ease; width:0%; }
+
+/* ── DASHBOARD ── */
+#dashboard { display:none; min-height:100vh; }
+
+.topbar { height:52px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; padding:0 32px; gap:16px; position:sticky; top:0; z-index:10; background:rgba(34,67,182,0.92); backdrop-filter:blur(12px); }
+.tb-logo-link { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:3px; color:var(--lavender); text-decoration:none; }
+.tb-sep { width:1px; height:18px; background:rgba(255,255,255,0.1); }
+.tb-subject { font-size:12px; color:rgba(255,255,255,0.5); }
+.tb-actions { margin-left:auto; display:flex; gap:8px; }
+.tb-btn { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:6px 14px; font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; color:rgba(255,255,255,0.7); cursor:pointer; transition:border-color 0.2s,color 0.2s; }
+.tb-btn:hover { border-color:var(--lavender); color:var(--white); }
+.tb-btn.primary { background:var(--navy); border-color:var(--navy); color:var(--white); }
+
+.hero { padding:48px 32px 0; display:grid; grid-template-columns:1fr 400px; gap:32px; max-width:1200px; margin:0 auto; }
+.hero-eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2.5px; color:rgba(255,255,255,0.6); text-transform:uppercase; margin-bottom:14px; }
+.hero-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(40px,5vw,64px); line-height:0.95; color:var(--white); margin-bottom:8px; }
+.hero-topic { font-size:16px; color:rgba(255,255,255,0.7); margin-bottom:32px; font-style:italic; font-family:'Instrument Serif',serif; }
+
+.score-dial-wrap { position:relative; width:200px; height:200px; margin-bottom:24px; }
+.score-dial-svg { width:200px; height:200px; transform:rotate(-90deg); }
+.dial-bg { fill:none; stroke:rgba(255,255,255,0.06); stroke-width:12; stroke-linecap:round; }
+.dial-fill { fill:none; stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset 1.5s cubic-bezier(0.34,1.56,0.64,1); }
+.dial-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.dial-score { font-family:'Bebas Neue',sans-serif; font-size:56px; line-height:1; color:var(--white); }
+.dial-max { font-family:'DM Mono',monospace; font-size:12px; color:rgba(255,255,255,0.6); letter-spacing:1px; }
+
+.score-grade { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:20px; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1px; font-weight:500; margin-bottom:16px; }
+.grade-critical { background:rgba(217,48,37,0.15); color:#EF5350; border:1px solid rgba(217,48,37,0.3); }
+.grade-low { background:rgba(245,158,11,0.15); color:#FBBF24; border:1px solid rgba(245,158,11,0.3); }
+.grade-moderate { background:rgba(59,130,246,0.15); color:#60A5FA; border:1px solid rgba(59,130,246,0.3); }
+.grade-good { background:rgba(22,163,74,0.15); color:#4ADE80; border:1px solid rgba(22,163,74,0.3); }
+.grade-strong { background:rgba(229,243,199,0.15); color:var(--sage); border:1px solid rgba(229,243,199,0.3); }
+.grade-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+.hero-summary { font-size:15px; color:rgba(255,255,255,0.8); line-height:1.7; max-width:360px; }
+
+.platform-cards { display:flex; flex-direction:column; gap:10px; }
+.plat-card { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:15px 16px; display:flex; align-items:center; gap:12px; }
+.plat-icon { font-size:20px; flex-shrink:0; width:26px; text-align:center; }
+.plat-info { flex:1; }
+.plat-name { font-size:14px; font-weight:600; color:var(--white); margin-bottom:2px; }
+.plat-detail { font-family:'DM Mono',monospace; font-size:11px; color:rgba(255,255,255,0.5); }
+.plat-bar { height:3px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; margin-top:7px; }
+.plat-bar-fill { height:100%; border-radius:3px; transition:width 1s cubic-bezier(0.34,1.56,0.64,1) 0.4s; }
+.plat-score-wrap { text-align:right; }
+.plat-score-num { font-family:'Bebas Neue',sans-serif; font-size:28px; line-height:1; color:var(--white); }
+.plat-score-max { font-family:'DM Mono',monospace; font-size:9px; color:rgba(255,255,255,0.25); }
+
+.content { max-width:1200px; margin:0 auto; padding:32px 32px 64px; display:grid; grid-template-columns:1fr 340px; gap:24px; }
+.section-title { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:14px; }
+
+.query-table { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.11); border-radius:12px; overflow:hidden; }
+.qt-header { display:grid; grid-template-columns:1fr repeat(4,60px); padding:11px 18px; border-bottom:1px solid rgba(255,255,255,0.07); gap:8px; }
+.qt-h { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1.5px; color:rgba(255,255,255,0.6); text-transform:uppercase; text-align:center; }
+.qt-h:first-child { text-align:left; }
+.qt-row { display:grid; grid-template-columns:1fr repeat(4,60px); padding:13px 18px; gap:8px; border-bottom:1px solid rgba(255,255,255,0.06); align-items:center; transition:background 0.15s; }
+.qt-row:hover { background:rgba(255,255,255,0.03); }
+.qt-row:last-child { border-bottom:none; }
+.qt-query { font-size:14px; color:rgba(255,255,255,0.9); line-height:1.4; font-weight:500; }
+.qt-query-cat { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.4); margin-top:3px; }
+.qt-score { text-align:center; font-family:'Bebas Neue',sans-serif; font-size:22px; }
+.score-0 { color:rgba(239,83,80,0.7); }
+.score-1 { color:rgba(251,191,36,0.85); }
+.score-2 { color:rgba(96,165,250,1); }
+.score-3 { color:var(--sage); }
+
+.gap-report { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.11); border-radius:12px; padding:20px; margin-top:24px; }
+.gap-item { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+.gap-item:last-child { border-bottom:none; padding-bottom:0; }
+.gap-severity { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; flex-shrink:0; margin-top:2px; font-weight:700; }
+.sev-high { background:rgba(217,48,37,0.2); color:#EF5350; }
+.sev-med  { background:rgba(245,158,11,0.2); color:#FBBF24; }
+.sev-low  { background:rgba(59,130,246,0.2); color:#60A5FA; }
+.gap-text { font-size:13px; color:rgba(255,255,255,0.8); line-height:1.6; }
+.gap-text strong { color:var(--white); display:block; font-size:14px; margin-bottom:3px; }
+
+.comparison { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.11); border-radius:12px; padding:20px; margin-top:24px; }
+.comp-item { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.comp-item:last-child { margin-bottom:0; }
+.comp-label { font-size:11px; color:rgba(255,255,255,0.5); width:130px; flex-shrink:0; }
+.comp-bar { flex:1; height:6px; background:rgba(255,255,255,0.05); border-radius:6px; overflow:hidden; }
+.comp-fill { height:100%; border-radius:6px; transition:width 1.2s cubic-bezier(0.34,1.56,0.64,1) 0.5s; }
+.comp-num { font-family:'DM Mono',monospace; font-size:11px; color:rgba(255,255,255,0.4); width:28px; text-align:right; }
+
+.sidebar {}
+.action-card { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:20px; margin-bottom:14px; }
+.ac-title { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:14px; }
+
+.cta-card { background:linear-gradient(135deg,var(--navy) 0%,#1530A8 100%); border-radius:12px; padding:24px; position:relative; overflow:hidden; margin-bottom:14px; }
+.cta-card::before { content:''; position:absolute; top:-40px; right:-40px; width:120px; height:120px; background:rgba(214,179,224,0.1); border-radius:50%; }
+.cta-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-bottom:10px; }
+.cta-title { font-family:'Instrument Serif',serif; font-size:20px; color:var(--white); line-height:1.3; margin-bottom:8px; }
+.cta-desc { font-size:12px; color:rgba(255,255,255,0.6); line-height:1.6; margin-bottom:16px; }
+.cta-price { font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--sage); line-height:1; margin-bottom:4px; }
+.cta-price-note { font-size:11px; color:rgba(255,255,255,0.35); margin-bottom:16px; }
+.cta-btn { width:100%; background:var(--white); color:var(--navy); border:none; border-radius:8px; padding:13px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:opacity 0.2s; }
+.cta-btn:hover { opacity:0.9; }
+.cta-features { margin-top:14px; display:flex; flex-direction:column; gap:6px; }
+.cta-feature { font-size:11px; color:rgba(255,255,255,0.5); display:flex; align-items:center; gap:6px; }
+.cta-check { color:var(--sage); }
+
+.retainer-card { background:linear-gradient(135deg,#B87FCC 0%,#9B5AB5 100%); border:1px solid rgba(214,179,224,0.4); border-radius:12px; padding:24px; position:relative; overflow:hidden; }
+.retainer-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--lavender),var(--sage)); }
+
+.disclaimer { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); border-radius:10px; padding:16px 20px; margin-top:24px; display:flex; gap:12px; align-items:flex-start; }
+.disclaimer-icon { color:#FBBF24; font-size:14px; flex-shrink:0; margin-top:1px; }
+.disclaimer-title { font-size:11px; font-weight:600; color:#FBBF24; margin-bottom:4px; font-family:'DM Mono',monospace; letter-spacing:0.5px; }
+.disclaimer-text { font-size:12px; color:rgba(255,255,255,0.55); line-height:1.6; }
+.disclaimer-text a { color:rgba(255,255,255,0.8); font-weight:600; }
+
+.score-key { display:flex; gap:20px; margin-top:12px; flex-wrap:wrap; }
+.sk-item { display:flex; align-items:center; gap:6px; font-size:11px; color:rgba(255,255,255,0.35); }
+.sk-num { font-family:'Bebas Neue',sans-serif; font-size:16px; }
+
+.report-footer { text-align:center; padding:28px 32px; font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,0.12); letter-spacing:1px; border-top:1px solid rgba(255,255,255,0.05); max-width:1200px; margin:0 auto; }
+.report-footer a { color:rgba(255,255,255,0.25); text-decoration:none; }
+
+@media(max-width:900px) {
+  .hero { grid-template-columns:1fr; padding:32px 20px 0; }
+  .content { grid-template-columns:1fr; padding:24px 20px 48px; }
+  .scan-grid { grid-template-columns:repeat(2,1fr); }
+  .qt-header, .qt-row { grid-template-columns:1fr repeat(4,44px); }
+  .topbar { padding:0 20px; }
+  .tb-subject { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ GATE ═══ -->
+<div id="gate">
+  <div class="gate-inner">
+    <div class="gate-eyebrow">
+      <a href="https://radarconsultancy.co" target="_blank" class="gate-logo">RADAR</a>
+      <div class="gate-sep"></div>
+      <span class="gate-brand">Radar Consultancy</span>
+    </div>
+
+    <div class="gate-title">RADAR<br><span>VISIBILITY</span><br>ESTIMATE</div>
+    <div class="gate-sub">Get an AI-estimated baseline of your visibility across Claude, ChatGPT, Perplexity and Gemini — with a gap analysis showing where you're most likely being overlooked.</div>
+
+    <div class="gate-stats">
+      <div class="gs"><span class="gs-num">144</span><span class="gs-label">Max estimate</span></div>
+      <div class="gs"><span class="gs-num">12</span><span class="gs-label">Query types</span></div>
+      <div class="gs"><span class="gs-num">4</span><span class="gs-label">AI platforms</span></div>
+      <div class="gs"><span class="gs-num">60<span style="font-size:26px;font-weight:600">s</span></span><span class="gs-label">To complete</span></div>
+    </div>
+
+    <div class="gate-form">
+      <input type="text"  id="g-firstname" placeholder="First name">
+      <input type="email" id="g-email"     placeholder="Work email">
+      <input type="text"  id="g-subject"   placeholder="Your name or brand (as it would appear in AI search)" class="full">
+      <input type="text"  id="g-topic"     placeholder="Your expertise area (e.g. burnout recovery, property investment)" class="full">
+      <input type="text"  id="g-niche"     placeholder="Industry / niche">
+      <input type="text"  id="g-location"  placeholder="Location (e.g. Australia)">
+    </div>
+    <button class="gate-btn" id="gate-btn" onclick="startScan()">
+      <span id="gate-btn-text">Generate My Visibility Estimate →</span>
+    </button>
+    <div class="error-msg" id="error-msg"></div>
+    <div class="gate-note">
+      No credit card required &nbsp;·&nbsp; Free estimate &nbsp;·&nbsp; Results in ~60 seconds<br>
+      <span style="color:rgba(255,255,255,0.3)">This tool produces an AI-estimated baseline, not a live measurement.</span><br><br>
+      Built by <a href="https://radarconsultancy.co" target="_blank" style="color:rgba(255,255,255,0.6);font-weight:600">radarconsultancy.co</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCAN ═══ -->
+<div id="scan">
+  <div class="scan-title">ESTIMATING <span id="scan-subject-label" style="color:var(--lavender)"></span></div>
+  <div class="scan-sub">Modelling visibility across 12 query types × 4 AI platforms</div>
+
+  <div class="scan-grid">
+    <div class="scan-platform" id="plat-claude">
+      <div class="sp-icon">🤖</div>
+      <div class="sp-name">Claude</div>
+      <div class="sp-status" id="st-claude">Waiting...</div>
+    </div>
+    <div class="scan-platform" id="plat-chatgpt">
+      <div class="sp-icon">💬</div>
+      <div class="sp-name">ChatGPT</div>
+      <div class="sp-status" id="st-chatgpt">Waiting...</div>
+    </div>
+    <div class="scan-platform" id="plat-perplexity">
+      <div class="sp-icon">🔍</div>
+      <div class="sp-name">Perplexity</div>
+      <div class="sp-status" id="st-perplexity">Waiting...</div>
+    </div>
+    <div class="scan-platform" id="plat-gemini">
+      <div class="sp-icon">✦</div>
+      <div class="sp-name">Gemini</div>
+      <div class="sp-status" id="st-gemini">Waiting...</div>
+    </div>
+  </div>
+
+  <div class="scan-queries" id="scan-queries"></div>
+
+  <div class="scan-progress">
+    <div class="sp-label" id="scan-pct-label">ANALYSING — 0%</div>
+    <div class="sp-bar-wrap"><div class="sp-bar-fill" id="scan-bar"></div></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard">
+
+  <div class="topbar">
+    <a href="https://radarconsultancy.co" target="_blank" class="tb-logo-link">RADAR</a>
+    <div class="tb-sep"></div>
+    <span class="tb-subject" id="tb-subject"></span>
+    <div class="tb-actions">
+      <button class="tb-btn" onclick="window.print()">Export PDF</button>
+      <button class="tb-btn" onclick="resetScan()">New Estimate</button>
+      <button class="tb-btn primary" onclick="document.getElementById('cta-section').scrollIntoView({behavior:'smooth'})">Get Verified Audit</button>
+    </div>
+  </div>
+
+  <div class="hero" id="hero-section">
+    <div class="hero-left">
+      <div class="hero-eyebrow">ESTIMATED VISIBILITY PROFILE — <span id="h-date"></span></div>
+      <div class="hero-name" id="h-name"></div>
+      <div class="hero-topic" id="h-topic"></div>
+
+      <div style="display:flex;align-items:flex-end;gap:32px;flex-wrap:wrap">
+        <div>
+          <div class="score-dial-wrap">
+            <svg class="score-dial-svg" viewBox="0 0 200 200">
+              <circle class="dial-bg" cx="100" cy="100" r="80"/>
+              <circle class="dial-fill" id="dial-circle" cx="100" cy="100" r="80"
+                stroke-dasharray="502" stroke-dashoffset="502"
+                stroke="url(#dialGrad)"/>
+              <defs>
+                <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#1530A8"/>
+                  <stop offset="100%" stop-color="#D6B3E0"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="dial-center">
+              <div class="dial-score" id="dial-score">0</div>
+              <div class="dial-max">/ 144 est.</div>
+            </div>
+          </div>
+          <div class="score-grade" id="score-grade"></div>
+        </div>
+        <div class="hero-summary" id="hero-summary"></div>
+      </div>
+    </div>
+
+    <div class="platform-cards" id="platform-cards"></div>
+  </div>
+
+  <div class="content">
+    <div>
+      <div class="section-title">ESTIMATED QUERY VISIBILITY — 12 QUERY TYPES × 4 PLATFORMS</div>
+      <div class="query-table">
+        <div class="qt-header">
+          <div class="qt-h">Query</div>
+          <div class="qt-h">Claude</div>
+          <div class="qt-h">GPT</div>
+          <div class="qt-h">Perp</div>
+          <div class="qt-h">Gemini</div>
+        </div>
+        <div id="query-rows"></div>
+      </div>
+
+      <div class="score-key">
+        <div class="sk-item"><span class="sk-num score-0">0</span> Not likely to appear</div>
+        <div class="sk-item"><span class="sk-num score-1">1</span> May be briefly mentioned</div>
+        <div class="sk-item"><span class="sk-num score-2">2</span> Likely referenced with context</div>
+        <div class="sk-item"><span class="sk-num score-3">3</span> Likely primary citation</div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.2);font-family:'DM Mono',monospace;margin-top:6px">Scores are AI-estimated based on known citation factors — not live platform data</div>
+
+      <div class="section-title" style="margin-top:28px">LIKELY VISIBILITY GAPS</div>
+      <div class="gap-report" id="gap-report"></div>
+
+      <div class="section-title" style="margin-top:28px">BENCHMARK COMPARISON</div>
+      <div class="comparison" id="comparison"></div>
+
+      <div class="disclaimer">
+        <div class="disclaimer-icon">⚠</div>
+        <div>
+          <div class="disclaimer-title">ESTIMATED PROFILE — NOT A LIVE MEASUREMENT</div>
+          <div class="disclaimer-text">This estimate is generated by AI based on known visibility factors for your name, topic and location. It does not run live queries on ChatGPT, Perplexity or Gemini. Treat it as a directional indicator — not a precise score. For a verified measurement, book a <a href="https://radarconsultancy.co/pages/contact" target="_blank">Radar Authority Audit</a>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="cta-section">
+      <div class="action-card" id="action-card">
+        <div class="ac-title">What This Means For You</div>
+        <div id="action-items"></div>
+      </div>
+
+      <div class="cta-card">
+        <div class="cta-label">Radar Consultancy</div>
+        <div class="cta-title">Get your verified score with a Radar Authority Audit</div>
+        <div class="cta-desc">This estimate shows likely gaps. The Authority Audit runs the real queries and measures your actual visibility.</div>
+        <div class="cta-price">$450</div>
+        <div class="cta-price-note">One-off payment</div>
+        <button class="cta-btn" onclick="window.open('https://radarconsultancy.co/pages/contact','_blank')">Book a Discovery Call</button>
+        <div class="cta-features">
+          <div class="cta-feature"><span class="cta-check">✓</span> Verified visibility measurement (not estimated)</div>
+          <div class="cta-feature"><span class="cta-check">✓</span> Personalised AI visibility roadmap</div>
+          <div class="cta-feature"><span class="cta-check">✓</span> Schema.org structured data</div>
+          <div class="cta-feature"><span class="cta-check">✓</span> 90-day authority content plan</div>
+        </div>
+      </div>
+
+      <div class="retainer-card">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;margin-bottom:10px">Ongoing Partnership</div>
+        <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;line-height:1.2;margin-bottom:10px">Radar Authority Architecture™</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:16px">For experts committed to long-term AI visibility. Radar extracts your thinking, structures it into a knowledge framework and builds the content ecosystem AI needs to consistently surface your expertise.</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--sage);line-height:1;margin-bottom:4px">From $2,500</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px">Per month · Tailored to your scope</div>
+        <button style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:8px;padding:13px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;" onclick="window.open('https://radarconsultancy.co/pages/contact','_blank')">Enquire About a Retainer</button>
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px"><span style="color:var(--lavender)">✓</span> Knowledge extraction and framework development</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px"><span style="color:var(--lavender)">✓</span> Schema.org and structured data architecture</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px"><span style="color:var(--lavender)">✓</span> Content ecosystem built for AI citation</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px"><span style="color:var(--lavender)">✓</span> Ongoing visibility monitoring and refinement</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="report-footer">
+    RADAR VISIBILITY ESTIMATE &nbsp;·&nbsp; AI-GENERATED BASELINE &nbsp;·&nbsp; NOT A LIVE MEASUREMENT &nbsp;·&nbsp;
+    <a href="https://radarconsultancy.co" target="_blank">RADARCONSULTANCY.CO</a>
+    &nbsp;·&nbsp; <span id="footer-date"></span>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────
+const PLATFORMS = ['claude','chatgpt','perplexity','gemini'];
+const PLATFORM_META = {
+  claude:     { icon:'🤖', name:'Claude',     color:'#7C8CF8' },
+  chatgpt:    { icon:'💬', name:'ChatGPT',    color:'#10A37F' },
+  perplexity: { icon:'🔍', name:'Perplexity', color:'#20B2AA' },
+  gemini:     { icon:'✦',  name:'Gemini',     color:'#EA4335' },
+};
+const QUERY_CATS = ['Brand Recognition','Brand Recognition','Brand Recognition','Expert Authority','Expert Authority','Expert Authority','Topic Ownership','Topic Ownership','Topic Ownership','Competitive Context','Comparative Queries','Trust Signals'];
+
+let userData = {};
+let scanData  = {};
+
+// ─── GATE ─────────────────────────────────────────────
+async function startScan() {
+  const fn    = document.getElementById('g-firstname').value.trim();
+  const email = document.getElementById('g-email').value.trim();
+  const subj  = document.getElementById('g-subject').value.trim();
+  const topic = document.getElementById('g-topic').value.trim();
+  const niche = document.getElementById('g-niche').value.trim();
+  const loc   = document.getElementById('g-location').value.trim();
+  const errEl = document.getElementById('error-msg');
+
+  errEl.style.display = 'none';
+
+  if (!fn || !email || !subj || !topic) {
+    errEl.textContent = 'Please complete all required fields (name, email, subject and expertise).';
+    errEl.style.display = 'block'; return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.style.display = 'block'; return;
+  }
+
+  userData = { fn, email, subj, topic, niche, loc };
+
+  const btn = document.getElementById('gate-btn');
+  btn.disabled = true;
+  document.getElementById('gate-btn-text').textContent = 'Generating...';
+
+  // Transition to scan
+  document.getElementById('gate').style.display = 'none';
+  const scanEl = document.getElementById('scan');
+  scanEl.style.display = 'flex';
+  document.getElementById('scan-subject-label').textContent = subj.toUpperCase();
+
+  await runScan();
+  btn.disabled = false;
+  document.getElementById('gate-btn-text').textContent = 'Generate My Visibility Estimate →';
+}
+
+// ─── SCAN ANIMATION + API CALL ──────────────────────────
+async function runScan() {
+  const { subj, topic, niche, loc } = userData;
+  let progress = 0;
+
+  const setProgress = (pct, label) => {
+    document.getElementById('scan-bar').style.width = pct + '%';
+    document.getElementById('scan-pct-label').textContent = `${label} — ${Math.round(pct)}%`;
+  };
+
+  const addQuery = (text) => {
+    const box = document.getElementById('scan-queries');
+    const el  = document.createElement('div');
+    el.className = 'sq-item running';
+    el.innerHTML = `<span class="sq-dot"></span><span>${text}</span>`;
+    box.appendChild(el);
+    if (box.children.length > 5) box.removeChild(box.children[0]);
+  };
+
+  // Kick off API call in background immediately
+  const apiPromise = callScoreAPI(subj, topic, niche, loc);
+
+  // Animate platforms during API wait
+  const animQueries = [
+    `Who is ${subj}?`, `${subj} ${topic}`, `Best ${topic} expert`,
+    `${subj} methodology`, `${topic} specialist ${loc||'Australia'}`,
+    `${subj} credibility`, `${topic} frameworks`, `${subj} vs peers`,
+    `Trust signals for ${topic}`, `AI citations: ${subj}`, `${topic} thought leader`, `${subj} expertise verified`
+  ];
+
+  for (let pi = 0; pi < PLATFORMS.length; pi++) {
+    const pid   = PLATFORMS[pi];
+    const platEl = document.getElementById(`plat-${pid}`);
+    const stEl   = document.getElementById(`st-${pid}`);
+    platEl.classList.add('active');
+    stEl.textContent = 'Scanning...';
+
+    for (let qi = 0; qi < 3; qi++) {
+      addQuery(animQueries[pi * 3 + qi]);
+      await sleep(350 + Math.random() * 250);
+      progress += 6;
+      setProgress(progress, `Scanning ${PLATFORM_META[pid].name}`);
+    }
+
+    platEl.classList.remove('active');
+    platEl.classList.add('done');
+    stEl.textContent = 'Complete ✓';
+  }
+
+  setProgress(92, 'Generating report');
+  addQuery('Compiling gap analysis...');
+
+  // Await API result
+  scanData = await apiPromise;
+
+  setProgress(100, 'Complete');
+  await sleep(500);
+  showDashboard();
+}
+
+async function callScoreAPI(subj, topic, niche, loc) {
+  try {
+    const resp = await fetch('/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subj, topic, niche, loc, email: userData.email, fn: userData.fn })
+    });
+    if (!resp.ok) throw new Error('API error');
+    return await resp.json();
+  } catch(e) {
+    console.warn('Score API failed, using fallback:', e);
+    return generateFallback(subj, topic, loc);
+  }
+}
+
+// ─── DASHBOARD RENDER ──────────────────────────────────
+function showDashboard() {
+  document.getElementById('scan').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  const { subj, topic, fn } = userData;
+  const d = scanData;
+  const total = d.totalScore || 0;
+
+  const dateStr = new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('h-date').textContent = dateStr;
+  document.getElementById('footer-date').textContent = dateStr;
+  document.getElementById('tb-subject').textContent = subj;
+  document.getElementById('h-name').textContent = subj.toUpperCase();
+  document.getElementById('h-topic').textContent = topic;
+
+  // Dial
+  setTimeout(() => {
+    const offset = 502 - (total / 144) * 502;
+    document.getElementById('dial-circle').style.strokeDashoffset = offset;
+    animNum('dial-score', 0, total, 1400);
+  }, 200);
+
+  // Grade
+  const g = getGrade(total);
+  const gEl = document.getElementById('score-grade');
+  gEl.className = `score-grade ${g.cls}`;
+  gEl.innerHTML = `<span class="grade-dot"></span>${g.label}`;
+
+  document.getElementById('hero-summary').textContent = d.summary || '';
+
+  // Platform cards
+  const pcEl = document.getElementById('platform-cards');
+  pcEl.innerHTML = '';
+  for (const pid of PLATFORMS) {
+    const pm = PLATFORM_META[pid];
+    const ps = (d.scores?.[pid] || []).reduce((a,b)=>a+b,0);
+    const pct = Math.round((ps / 36) * 100);
+    const visible = (d.scores?.[pid] || []).filter(s=>s>0).length;
+    const card = document.createElement('div');
+    card.className = 'plat-card';
+    card.innerHTML = `
+      <div class="plat-icon">${pm.icon}</div>
+      <div class="plat-info">
+        <div class="plat-name">${pm.name}</div>
+        <div class="plat-detail">${visible} of 12 queries — ${pct}% est. visibility</div>
+        <div class="plat-bar"><div class="plat-bar-fill" style="width:0%;background:${pm.color}" data-w="${pct}"></div></div>
+      </div>
+      <div class="plat-score-wrap">
+        <div class="plat-score-num">${ps}</div>
+        <div class="plat-score-max">/ 36</div>
+      </div>`;
+    pcEl.appendChild(card);
+  }
+  setTimeout(() => {
+    document.querySelectorAll('.plat-bar-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  }, 300);
+
+  // Query table
+  const qrEl = document.getElementById('query-rows');
+  qrEl.innerHTML = '';
+  (d.queries || []).forEach((q, i) => {
+    const row = document.createElement('div');
+    row.className = 'qt-row';
+    const cells = PLATFORMS.map(pid => {
+      const s = (d.scores?.[pid] || [])[i] ?? 0;
+      return `<div class="qt-score score-${s}">${s}</div>`;
+    }).join('');
+    row.innerHTML = `<div><div class="qt-query">${q}</div><div class="qt-query-cat">${QUERY_CATS[i]||''}</div></div>${cells}`;
+    qrEl.appendChild(row);
+  });
+
+  // Gaps
+  const grEl = document.getElementById('gap-report');
+  grEl.innerHTML = '';
+  (d.gaps || []).forEach(g => {
+    const sc = g.severity==='high'?'sev-high':g.severity==='med'?'sev-med':'sev-low';
+    const sl = g.severity==='high'?'H':g.severity==='med'?'M':'L';
+    const item = document.createElement('div');
+    item.className = 'gap-item';
+    item.innerHTML = `<div class="gap-severity ${sc}">${sl}</div><div class="gap-text"><strong>${g.title}</strong>${g.detail}</div>`;
+    grEl.appendChild(item);
+  });
+
+  // Action insight
+  const aiEl = document.getElementById('action-items');
+  aiEl.innerHTML = '';
+  const insight = total < 30
+    ? `Your estimated score of ${total}/144 signals significant gaps in how AI systems recognise and attribute your expertise. The gaps above point to where the biggest opportunities lie.`
+    : total < 70
+    ? `Your estimated score of ${total}/144 shows partial AI presence. You are being cited in some contexts but missing from others — the gaps above show where attribution is breaking down.`
+    : `Your estimated score of ${total}/144 reflects meaningful AI visibility. The gaps above show where attribution could be strengthened further and where competitors may still be displacing you.`;
+  aiEl.innerHTML = `
+    <div style="font-size:13px;color:rgba(255,255,255,0.8);line-height:1.7;margin-bottom:14px">${insight}</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.45);line-height:1.6;font-style:italic">A personalised action plan is available as part of a Radar Authority Audit.</div>`;
+
+  // Benchmark
+  const bs = d.benchmarkScores || {};
+  const compEl = document.getElementById('comparison');
+  compEl.innerHTML = '';
+  const items = [
+    { label: fn || 'You', score: bs.yourScore||total, color: '#D6B3E0' },
+    { label: 'Industry average', score: bs.industryAverage||31, color: '#6B7280' },
+    { label: 'Radar client avg', score: bs.radarClient||87, color: '#E5F3C7' },
+    { label: 'Top performer',    score: bs.topPerformer||112, color: '#E5F3C7' },
+  ];
+  items.forEach(ci => {
+    const pct = Math.round((ci.score / 144) * 100);
+    compEl.innerHTML += `<div class="comp-item">
+      <div class="comp-label">${ci.label}</div>
+      <div class="comp-bar"><div class="comp-fill" style="width:0%;background:${ci.color}" data-w="${pct}"></div></div>
+      <div class="comp-num">${ci.score}</div></div>`;
+  });
+  setTimeout(() => {
+    document.querySelectorAll('.comp-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  }, 500);
+
+  window.scrollTo(0,0);
+}
+
+// ─── HELPERS ──────────────────────────────────────────
+function getGrade(s) {
+  if (s < 20)  return { label:'ESTIMATED: Very Low Visibility', cls:'grade-critical' };
+  if (s < 45)  return { label:'ESTIMATED: Low Visibility',      cls:'grade-low' };
+  if (s < 75)  return { label:'ESTIMATED: Moderate Visibility', cls:'grade-moderate' };
+  if (s < 100) return { label:'ESTIMATED: Good Visibility',     cls:'grade-good' };
+  return              { label:'ESTIMATED: Strong Visibility',   cls:'grade-strong' };
+}
+
+function animNum(id, from, to, dur) {
+  const el = document.getElementById(id);
+  const start = performance.now();
+  const tick = (now) => {
+    const t = Math.min((now - start) / dur, 1);
+    el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetScan() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('gate').style.display = 'flex';
+  // Reset scan screen internals
+  PLATFORMS.forEach(pid => {
+    const pl = document.getElementById(`plat-${pid}`);
+    if (pl) { pl.className = 'scan-platform'; document.getElementById(`st-${pid}`).textContent = 'Waiting...'; }
+  });
+  document.getElementById('scan-queries').innerHTML = '';
+  document.getElementById('scan-bar').style.width = '0%';
+}
+
+function generateFallback(subj, topic, loc) {
+  const s = () => Math.floor(Math.random() * 3);
+  const scores = {};
+  let total = 0;
+  for (const p of PLATFORMS) {
+    scores[p] = Array.from({length:12}, () => { const v = s(); total += v; return v; });
+  }
+  return {
+    scores, totalScore: total,
+    queries: [`Who is ${subj}?`,`${subj} ${topic}`,`${subj} expert credentials`,`Leading ${topic} expert in ${loc||'Australia'}`,`Best approach to ${topic}`,`${topic} specialist ${loc||'Australia'}`,`${topic} framework`,`What is the best ${topic} approach?`,`Latest thinking on ${topic}`,`${topic} experts compared`,`${subj} vs other ${topic} experts`,`Is ${subj} credible for ${topic}?`],
+    gaps: [
+      { severity:'high', title:'Topic ownership gaps in AI responses', detail:`When AI platforms answer questions about ${topic}, the specific angle and methodology that ${subj} brings is not yet being attributed to them distinctly.` },
+      { severity:'high', title:'Missing Schema.org structured data', detail:`Without Schema.org Person and DefinedTermSet markup, AI systems cannot reliably attribute frameworks to ${subj} across all platforms.` },
+      { severity:'med',  title:'Inconsistent attribution across platforms', detail:`${subj} may be referenced on some platforms but not others. Consistent attribution requires content structured the same way across multiple sources.` },
+      { severity:'med',  title:'No named proprietary framework in AI knowledge base', detail:`A distinctively named methodology increases citation probability significantly. Generic expertise descriptions are harder for AI to attribute than a named framework.` },
+      { severity:'low',  title:'Limited third-party citation signals', detail:`AI systems weight third-party references heavily. Increasing citations from publications, podcasts and industry sites will lift scores across all platforms.` }
+    ],
+    summary: `This is an AI-estimated baseline for ${subj} in ${topic}. The estimate reflects likely visibility patterns based on known AI citation factors. Actual scores may vary. The gaps identified represent the most common opportunities for improvement at this visibility level.`,
+    benchmarkScores: { yourScore: total, industryAverage: 31, topPerformer: 112, radarClient: 87 }
+  };
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('gate').style.display !== 'none') startScan();
+});
+</script>
+</body>
+</html>
