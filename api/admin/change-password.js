@@ -1,7 +1,7 @@
 import { verifyAdminPassword, setAdminPasswordFromPlain } from '../_lib/auth.js';
 import { readJsonBody } from '../_lib/readJsonBody.js';
 import { getSessionFromRequest } from '../_lib/session.js';
-import { getRedis } from '../_lib/redis.js';
+import { getSupabaseAdmin } from '../_lib/supabase.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,12 +13,11 @@ export default async function handler(req, res) {
   const session = getSessionFromRequest(req);
   if (!session) return res.status(401).json({ error: 'Unauthorized' });
 
-  const redis = getRedis();
-  if (!redis) {
+  if (!getSupabaseAdmin()) {
     return res.status(503).json({
-      error: 'Redis not configured',
+      error: 'Supabase not configured',
       detail:
-        'Add UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN so the new password can be stored securely.',
+        'Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel, and run supabase/schema.sql in the Supabase SQL editor.',
     });
   }
 

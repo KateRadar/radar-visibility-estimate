@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@upstash/redis": "^1.34.3",
+    "@supabase/supabase-js": "^2.49.1",
     "bcryptjs": "^2.4.3"
   }
 }

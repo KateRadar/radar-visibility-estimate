@@ -1,16 +1,22 @@
 import bcrypt from 'bcryptjs';
-import { getRedis } from './redis.js';
+import { getSupabaseAdmin } from './supabase.js';
 
-const PASSWORD_HASH_KEY = 'audit:admin_password_hash';
+const PASSWORD_ROW_KEY = 'admin_password_bcrypt';
 
 /**
- * If Redis has a hash, use it. Otherwise fall back to ADMIN_PASSWORD (plaintext in env).
+ * If Supabase has a hash row, use it. Otherwise fall back to ADMIN_PASSWORD (plaintext in env).
  */
 export async function verifyAdminPassword(password) {
-  const redis = getRedis();
-  const stored = redis ? await redis.get(PASSWORD_HASH_KEY) : null;
-  if (stored && typeof stored === 'string') {
-    return bcrypt.compare(password, stored);
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('admin_kv')
+      .select('value')
+      .eq('key', PASSWORD_ROW_KEY)
+      .maybeSingle();
+    if (!error && data?.value && typeof data.value === 'string') {
+      return bcrypt.compare(password, data.value);
+    }
   }
   const envPlain = process.env.ADMIN_PASSWORD;
   if (!envPlain) return false;
@@ -18,20 +24,33 @@ export async function verifyAdminPassword(password) {
 }
 
 /**
- * Persists bcrypt hash to Redis. Requires Upstash to be configured.
+ * Persists bcrypt hash to Supabase. Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
  */
 export async function setAdminPasswordFromPlain(newPlain) {
-  const redis = getRedis();
-  if (!redis) {
-    throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required to change password.');
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required to change password.');
   }
   const hash = bcrypt.hashSync(newPlain, 10);
-  await redis.set(PASSWORD_HASH_KEY, hash);
+  const { error } = await supabase.from('admin_kv').upsert(
+    {
+      key: PASSWORD_ROW_KEY,
+      value: hash,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'key' }
+  );
+  if (error) throw new Error(error.message);
 }
 
 export async function hasStoredPasswordHash() {
-  const redis = getRedis();
-  if (!redis) return false;
-  const v = await redis.get(PASSWORD_HASH_KEY);
-  return Boolean(v && typeof v === 'string');
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from('admin_kv')
+    .select('value')
+    .eq('key', PASSWORD_ROW_KEY)
+    .maybeSingle();
+  if (error || !data?.value) return false;
+  return typeof data.value === 'string' && data.value.length > 0;
 }

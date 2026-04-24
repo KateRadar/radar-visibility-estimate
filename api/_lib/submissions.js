@@ -1,7 +1,5 @@
-import { randomUUID } from 'crypto';
-import { getRedis } from './redis.js';
+import { getSupabaseAdmin } from './supabase.js';
 
-const LIST_KEY = 'audit:submissions';
 const MAX_ITEMS = 500;
 
 /**
@@ -9,36 +7,48 @@ const MAX_ITEMS = 500;
  * @param {{ email?: string, fn?: string, subj?: string, topic?: string, niche?: string, loc?: string }} row
  */
 export async function recordAuditSubmission(row) {
-  const redis = getRedis();
-  if (!redis) {
-    console.warn('[submissions] Upstash Redis not configured; submission not stored.');
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    console.warn('[submissions] Supabase not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY); submission not stored.');
     return;
   }
-  const entry = {
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
+  const { error } = await supabase.from('visibility_submissions').insert({
     email: row.email || '',
     fn: row.fn || '',
     subj: row.subj || '',
     topic: row.topic || '',
     niche: row.niche || '',
     loc: row.loc || '',
-  };
-  await redis.lpush(LIST_KEY, JSON.stringify(entry));
-  await redis.ltrim(LIST_KEY, 0, MAX_ITEMS - 1);
+  });
+  if (error) {
+    console.error('[submissions] insert failed', error.message, error.code);
+    throw error;
+  }
 }
 
 export async function listAuditSubmissions() {
-  const redis = getRedis();
-  if (!redis) return [];
-  const raw = await redis.lrange(LIST_KEY, 0, MAX_ITEMS - 1);
-  const rows = [];
-  for (const s of raw) {
-    try {
-      rows.push(JSON.parse(s));
-    } catch {
-      /* skip */
-    }
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('visibility_submissions')
+    .select('id, created_at, email, fn, subj, topic, niche, loc')
+    .order('created_at', { ascending: false })
+    .limit(MAX_ITEMS);
+
+  if (error) {
+    console.error('[submissions] list failed', error.message);
+    return [];
   }
-  return rows;
+
+  return (data || []).map((r) => ({
+    id: r.id,
+    createdAt: r.created_at,
+    email: r.email ?? '',
+    fn: r.fn ?? '',
+    subj: r.subj ?? '',
+    topic: r.topic ?? '',
+    niche: r.niche ?? '',
+    loc: r.loc ?? '',
+  }));
 }

@@ -91,7 +91,7 @@
   <main>
     <section class="panel" id="login-panel">
       <h2>Sign in</h2>
-      <p style="font-size:0.9rem;color:#4b5563;margin-bottom:14px">Use the admin password set in Vercel as <code>ADMIN_PASSWORD</code>. After you connect Upstash Redis, you can change the password below.</p>
+      <p style="font-size:0.9rem;color:#4b5563;margin-bottom:14px">Use the admin password set in Vercel as <code>ADMIN_PASSWORD</code>. After Supabase is connected and <code>supabase/schema.sql</code> has been run, you can change the dashboard password below.</p>
       <form id="form-login">
         <label for="pw">Password</label>
         <input type="password" id="pw" name="password" autocomplete="current-password" required>
@@ -111,7 +111,7 @@
 
     <section class="panel" id="pwd-panel" style="display:none">
       <h2>Change password</h2>
-      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:14px">Requires <code>UPSTASH_REDIS_REST_URL</code> and <code>UPSTASH_REDIS_REST_TOKEN</code> so the new hash can be stored. Your session stays valid after a successful change.</p>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:14px">Requires <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> in Vercel (same project where you ran <code>supabase/schema.sql</code>). Your session stays valid after a successful change.</p>
       <div id="pwd-disabled" class="msg err" style="display:none"></div>
       <form id="form-pwd" style="display:none">
         <label for="cur">Current password</label>
@@ -154,13 +154,14 @@
         $('dash-panel').style.display = 'block';
         $('pwd-panel').style.display = 'block';
         $('btn-logout').style.display = 'block';
-        $('hdr-meta').textContent = data.redisConfigured
-          ? 'Signed in · Redis connected'
-          : 'Signed in · Redis not configured — submissions will not be stored';
+        const dbOk = data.supabaseConfigured || data.redisConfigured;
+        $('hdr-meta').textContent = dbOk
+          ? 'Signed in · Supabase connected'
+          : 'Signed in · Supabase not configured — submissions will not be stored';
         if (!data.passwordChangeAvailable) {
           $('form-pwd').style.display = 'none';
           $('pwd-disabled').style.display = 'block';
-          $('pwd-disabled').textContent = 'Configure Upstash Redis env vars to enable password changes.';
+          $('pwd-disabled').textContent = 'Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel to enable password changes and lead storage.';
         } else {
           $('pwd-disabled').style.display = 'none';
           $('form-pwd').style.display = 'block';
@@ -185,7 +186,7 @@
       }
       const rows = data.submissions || [];
       if (!rows.length) {
-        wrap.innerHTML = '<div class="empty">No submissions yet. They appear here when visitors complete the estimate and Redis is configured.</div>';
+        wrap.innerHTML = '<div class="empty">No submissions yet. They appear here when visitors complete the estimate and Supabase is configured with the schema applied.</div>';
         return;
       }
       const cols = ['createdAt','email','fn','subj','topic','niche','loc'];

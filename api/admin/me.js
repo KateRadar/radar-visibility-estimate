@@ -1,5 +1,5 @@
 import { getSessionFromRequest } from '../_lib/session.js';
-import { getRedis } from '../_lib/redis.js';
+import { getSupabaseAdmin } from '../_lib/supabase.js';
 import { hasStoredPasswordHash } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -12,12 +12,15 @@ export default async function handler(req, res) {
   const session = getSessionFromRequest(req);
   if (!session) return res.status(401).json({ ok: false, authenticated: false });
 
-  const redis = getRedis();
+  const supabase = getSupabaseAdmin();
+  const configured = Boolean(supabase);
   return res.status(200).json({
     ok: true,
     authenticated: true,
-    redisConfigured: Boolean(redis),
-    passwordChangeAvailable: Boolean(redis),
+    supabaseConfigured: configured,
+    /** @deprecated use supabaseConfigured */
+    redisConfigured: configured,
+    passwordChangeAvailable: configured,
     usingStoredPasswordHash: await hasStoredPasswordHash(),
   });
 }
