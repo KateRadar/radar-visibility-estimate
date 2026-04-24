@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Radar — Visibility estimate leads</title>
+  <style>
+    :root {
+      --navy: #1530A8;
+      --ink: #2243B6;
+      --paper: #F8F6F1;
+      --line: #E2DDD6;
+      --mid: #6B7280;
+      --err: #B91C1C;
+      --ok: #15803D;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--paper);
+      color: #1f2937;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    header {
+      background: var(--ink);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.02em; }
+    header .meta { font-size: 0.8rem; opacity: 0.75; }
+    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .panel h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--mid); margin-bottom: 14px; }
+    label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 6px; color: #374151; }
+    input[type="password"] {
+      width: 100%;
+      max-width: 320px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button.secondary { background: #fff; color: var(--navy); border: 1px solid var(--navy); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .msg { font-size: 0.875rem; margin-top: 10px; }
+    .msg.err { color: var(--err); }
+    .msg.ok { color: var(--ok); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #f9fafb; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mid); }
+    tr:hover td { background: #fafafa; }
+    .empty { color: var(--mid); font-size: 0.9rem; padding: 16px 0; }
+    .row-actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    code { font-size: 0.8em; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Radar — visibility estimate leads</h1>
+      <div class="meta" id="hdr-meta">Password-protected</div>
+    </div>
+    <button type="button" class="secondary" id="btn-logout" style="display:none;margin-top:0">Log out</button>
+  </header>
+
+  <main>
+    <section class="panel" id="login-panel">
+      <h2>Sign in</h2>
+      <p style="font-size:0.9rem;color:#4b5563;margin-bottom:14px">Use the admin password set in Vercel as <code>ADMIN_PASSWORD</code>. After you connect Upstash Redis, you can change the password below.</p>
+      <form id="form-login">
+        <label for="pw">Password</label>
+        <input type="password" id="pw" name="password" autocomplete="current-password" required>
+        <div><button type="submit" id="btn-login">Sign in</button></div>
+        <div class="msg err" id="login-err" style="display:none"></div>
+      </form>
+    </section>
+
+    <section class="panel" id="dash-panel" style="display:none">
+      <h2>Recent submissions</h2>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Each row is saved when someone runs the visibility estimate (same moment as the score API).</p>
+      <div id="subs-wrap"></div>
+      <div class="row-actions">
+        <button type="button" id="btn-refresh">Refresh</button>
+      </div>
+    </section>
+
+    <section class="panel" id="pwd-panel" style="display:none">
+      <h2>Change password</h2>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:14px">Requires <code>UPSTASH_REDIS_REST_URL</code> and <code>UPSTASH_REDIS_REST_TOKEN</code> so the new hash can be stored. Your session stays valid after a successful change.</p>
+      <div id="pwd-disabled" class="msg err" style="display:none"></div>
+      <form id="form-pwd" style="display:none">
+        <label for="cur">Current password</label>
+        <input type="password" id="cur" autocomplete="current-password" required style="margin-bottom:12px">
+        <label for="new1">New password (min 10 characters)</label>
+        <input type="password" id="new1" autocomplete="new-password" required style="margin-bottom:12px">
+        <label for="new2">Confirm new password</label>
+        <input type="password" id="new2" autocomplete="new-password" required>
+        <div><button type="submit" id="btn-pwd">Update password</button></div>
+        <div class="msg" id="pwd-msg" style="display:none"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function api(path, opts = {}) {
+      const r = await fetch(path, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        ...opts,
+      });
+      const text = await r.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+      return { ok: r.ok, status: r.status, data };
+    }
+
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+    }
+
+    async function refreshMe() {
+      const { ok, data } = await api('/api/admin/me');
+      if (ok && data.authenticated) {
+        $('login-panel').style.display = 'none';
+        $('dash-panel').style.display = 'block';
+        $('pwd-panel').style.display = 'block';
+        $('btn-logout').style.display = 'block';
+        $('hdr-meta').textContent = data.redisConfigured
+          ? 'Signed in · Redis connected'
+          : 'Signed in · Redis not configured — submissions will not be stored';
+        if (!data.passwordChangeAvailable) {
+          $('form-pwd').style.display = 'none';
+          $('pwd-disabled').style.display = 'block';
+          $('pwd-disabled').textContent = 'Configure Upstash Redis env vars to enable password changes.';
+        } else {
+          $('pwd-disabled').style.display = 'none';
+          $('form-pwd').style.display = 'block';
+        }
+        await loadSubmissions();
+      } else {
+        $('login-panel').style.display = 'block';
+        $('dash-panel').style.display = 'none';
+        $('pwd-panel').style.display = 'none';
+        $('btn-logout').style.display = 'none';
+        $('hdr-meta').textContent = 'Password-protected';
+      }
+    }
+
+    async function loadSubmissions() {
+      const wrap = $('subs-wrap');
+      wrap.innerHTML = '<div class="empty">Loading…</div>';
+      const { ok, status, data } = await api('/api/admin/submissions');
+      if (!ok) {
+        wrap.innerHTML = '<div class="msg err">Could not load submissions (' + status + ').</div>';
+        return;
+      }
+      const rows = data.submissions || [];
+      if (!rows.length) {
+        wrap.innerHTML = '<div class="empty">No submissions yet. They appear here when visitors complete the estimate and Redis is configured.</div>';
+        return;
+      }
+      const cols = ['createdAt','email','fn','subj','topic','niche','loc'];
+      let html = '<table><thead><tr>';
+      cols.forEach(c => { html += '<th>' + esc(c) + '</th>'; });
+      html += '</tr></thead><tbody>';
+      for (const r of rows) {
+        html += '<tr>';
+        cols.forEach(c => { html += '<td>' + esc(r[c]) + '</td>'; });
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    }
+
+    $('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = $('login-err');
+      err.style.display = 'none';
+      const password = $('pw').value;
+      const { ok, data } = await api('/api/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+      });
+      if (!ok) {
+        err.textContent = data.error || data.detail || 'Login failed';
+        err.style.display = 'block';
+        return;
+      }
+      $('pw').value = '';
+      await refreshMe();
+    });
+
+    $('btn-logout').addEventListener('click', async () => {
+      await api('/api/admin/logout', { method: 'POST', body: '{}' });
+      await refreshMe();
+    });
+
+    $('btn-refresh').addEventListener('click', () => loadSubmissions());
+
+    $('form-pwd').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = $('pwd-msg');
+      msg.style.display = 'none';
+      msg.className = 'msg';
+      const cur = $('cur').value;
+      const new1 = $('new1').value;
+      const new2 = $('new2').value;
+      if (new1 !== new2) {
+        msg.textContent = 'New passwords do not match.';
+        msg.className = 'msg err';
+        msg.style.display = 'block';
+        return;
+      }
+      const { ok, data } = await api('/api/admin/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: cur, newPassword: new1 }),
+      });
+      if (!ok) {
+        msg.textContent = data.error + (data.detail ? ': ' + data.detail : '');
+        msg.className = 'msg err';
+        msg.style.display = 'block';
+        return;
+      }
+      msg.textContent = 'Password updated. Use the new password next time you sign in.';
+      msg.className = 'msg ok';
+      msg.style.display = 'block';
+      $('cur').value = '';
+      $('new1').value = '';
+      $('new2').value = '';
+    });
+
+    refreshMe();
+  </script>
+</body>
+</html>

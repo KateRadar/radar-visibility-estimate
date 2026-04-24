@@ -1,6 +1,8 @@
 // api/score.js
 // Vercel serverless function — Claude scoring engine + Klaviyo lead capture
 
+import { recordAuditSubmission } from './_lib/submissions.js';
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,6 +16,11 @@ export default async function handler(req, res) {
   if (!subj || !topic) {
     return res.status(400).json({ error: 'subj and topic are required' });
   }
+
+  // ── 0. Store lead for admin dashboard (Upstash Redis) ─────────
+  recordAuditSubmission({ email, fn, subj, topic, niche, loc }).catch((err) =>
+    console.error('[submissions]', err)
+  );
 
   // ── 1. Fire Klaviyo lead capture in background (don't await) ──
   captureKlaviyoLead({ email, fn, subj, topic, niche, loc }).catch(console.warn);
