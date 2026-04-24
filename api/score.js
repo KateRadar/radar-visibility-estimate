@@ -154,12 +154,24 @@ Respond ONLY in valid JSON. No markdown, no backticks, no preamble. Exactly this
 }`;
 }
 
+const KLAVIYO_REVISION = '2023-12-15';
+
+const klaviyoHeaders = (key) => ({
+  'Content-Type': 'application/vnd.api+json',
+  Accept: 'application/vnd.api+json',
+  Authorization: `Klaviyo-API-Key ${key}`,
+  revision: KLAVIYO_REVISION,
+});
+
 // ── KLAVIYO LEAD CAPTURE ────────────────────────────────────
 async function captureKlaviyoLead({ email, fn, subj, topic, niche, loc }) {
   const key    = process.env.KLAVIYO_PRIVATE_KEY;
   const listId = process.env.KLAVIYO_LIST_ID;
 
-  if (!key || !listId || !email) return;
+  if (!key || !listId || !email) {
+    console.warn('[Klaviyo] skip: missing KLAVIYO_PRIVATE_KEY, KLAVIYO_LIST_ID, or email');
+    return;
+  }
 
   const payload = {
     data: {
@@ -179,40 +191,46 @@ async function captureKlaviyoLead({ email, fn, subj, topic, niche, loc }) {
     },
   };
 
-  // Upsert profile
+  // Create profile (new emails → 201; existing email → 409 + duplicate_profile_id in body)
   const profileResp = await fetch('https://a.klaviyo.com/api/profiles/', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Klaviyo-API-Key ${key}`,
-      'revision': '2023-12-15',
-    },
+    headers: klaviyoHeaders(key),
     body: JSON.stringify(payload),
   });
 
-  // Get profile ID from response or duplicate header
   let profileId;
   if (profileResp.status === 201) {
     const pData = await profileResp.json();
     profileId = pData?.data?.id;
   } else if (profileResp.status === 409) {
-    // Profile exists — extract ID from location header
-    const loc409 = profileResp.headers.get('location') || '';
-    profileId = loc409.split('/').pop();
+    const errData = await profileResp.json().catch(() => ({}));
+    profileId =
+      errData?.errors?.[0]?.meta?.duplicate_profile_id ||
+      (() => {
+        const loc = profileResp.headers.get('location') || '';
+        return loc.split('/').filter(Boolean).pop();
+      })();
+  } else {
+    const errText = await profileResp.text();
+    console.error('[Klaviyo] create profile failed', profileResp.status, errText.slice(0, 500));
+    return;
   }
 
-  if (!profileId || !listId) return;
+  if (!profileId) {
+    console.error('[Klaviyo] no profile id after create/409');
+    return;
+  }
 
-  // Add to list
-  await fetch(`https://a.klaviyo.com/api/lists/${listId}/relationships/profiles/`, {
+  const listResp = await fetch(`https://a.klaviyo.com/api/lists/${listId}/relationships/profiles/`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Klaviyo-API-Key ${key}`,
-      'revision': '2023-12-15',
-    },
+    headers: klaviyoHeaders(key),
     body: JSON.stringify({
       data: [{ type: 'profile', id: profileId }],
     }),
   });
+
+  if (!listResp.ok) {
+    const errText = await listResp.text();
+    console.error('[Klaviyo] add to list failed', listResp.status, errText.slice(0, 500));
+  }
 }
