@@ -91,7 +91,8 @@
   <main>
     <section class="panel" id="login-panel">
       <h2>Sign in</h2>
-      <p style="font-size:0.9rem;color:#4b5563;margin-bottom:14px">Use the admin password set in Vercel as <code>ADMIN_PASSWORD</code>. After Supabase is connected and <code>supabase/schema.sql</code> has been run, you can change the dashboard password below.</p>
+      <p style="font-size:0.9rem;color:#4b5563;margin-bottom:10px">Use the admin password set in Vercel as <code>ADMIN_PASSWORD</code>. After Supabase is connected and <code>supabase/schema.sql</code> has been run, you can change the dashboard password below.</p>
+      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:14px">Vercel must also set <code>ADMIN_SESSION_SECRET</code> to a random string of <strong>at least 16 characters</strong> (used to sign your session cookie).</p>
       <form id="form-login">
         <label for="pw">Password</label>
         <input type="password" id="pw" name="password" autocomplete="current-password" required>
@@ -212,7 +213,7 @@
         body: JSON.stringify({ password }),
       });
       if (!ok) {
-        err.textContent = data.error || data.detail || 'Login failed';
+        err.textContent = data.detail || data.error || 'Login failed';
         err.style.display = 'block';
         return;
       }
