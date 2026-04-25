@@ -211,8 +211,25 @@ body { font-family: 'DM Sans', sans-serif; background: var(--ink); color: var(--
   .tb-subject { display:none; }
 }
 </style>
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document, 'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1420777459823209');
+fbq('track', 'PageView');
+</script>
 </head>
 <body>
+<noscript>
+  <img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1420777459823209&ev=PageView&noscript=1"
+    alt="">
+</noscript>
 
 <!-- ═══ GATE ═══ -->
 <div id="gate">
@@ -438,6 +455,22 @@ const QUERY_CATS = ['Brand Recognition','Brand Recognition','Brand Recognition',
 let userData = {};
 let scanData  = {};
 
+function trackFacebookLead({ subj, topic, niche, loc }) {
+  try {
+    if (typeof fbq !== 'function') return;
+    fbq('track', 'Lead', {
+      content_name: 'Radar Visibility Estimate',
+      content_category: 'AI Visibility Audit',
+      subject: subj || '',
+      topic: topic || '',
+      niche: niche || '',
+      location: loc || '',
+    });
+  } catch (e) {
+    console.warn('Facebook Lead tracking skipped:', e);
+  }
+}
+
 // ─── GATE ─────────────────────────────────────────────
 async function startScan() {
   const fn    = document.getElementById('g-firstname').value.trim();
@@ -460,6 +493,7 @@ async function startScan() {
   }
 
   userData = { fn, email, subj, topic, niche, loc };
+  trackFacebookLead({ subj, topic, niche, loc });
 
   const btn = document.getElementById('gate-btn');
   btn.disabled = true;
